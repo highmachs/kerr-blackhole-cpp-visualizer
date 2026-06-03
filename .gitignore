@@ -1,0 +1,33 @@
+# Native build outputs
+build/
+build-*/
+out/
+*.exe
+*.pdb
+*.ilk
+*.obj
+*.ipch
+*.log
+*.tmp
+
+# CMake / generated files
+CMakeFiles/
+CMakeCache.txt
+cmake-build-*/
+compile_commands.json
+CTestTestfile.cmake
+cmake_install.cmake
+Makefile
+*.vcxproj
+*.vcxproj.filters
+*.sln
+
+# IDE and OS files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sw?

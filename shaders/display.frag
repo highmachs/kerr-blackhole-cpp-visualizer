@@ -35,9 +35,13 @@ void main() {
 
     col = aces(col);
 
-    // Whiteout flash from Cauchy horizon crossing.
-    float flash = clamp(u_whiteout / 0.2, 0.0, 1.0);
-    col = mix(col, vec3(1.0), flash);
+    // Whiteout flash from Cauchy horizon crossing with natural optical decay & blueshift bloom
+    float flash = clamp(u_whiteout / 0.35, 0.0, 1.0);
+    if (flash > 0.001) {
+        float flashCurve = smoothstep(0.0, 1.0, flash);
+        vec3 flashCol = mix(vec3(0.78, 0.92, 1.00), vec3(1.0), flash);
+        col = mix(col, flashCol, flashCurve);
+    }
 
     fragColor = vec4(col, 1.0);
 }

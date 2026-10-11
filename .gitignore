@@ -1,6 +1,7 @@
 # Native build outputs
 build/
 build-*/
+build_ninja/
 out/
 *.exe
 *.pdb
@@ -9,6 +10,11 @@ out/
 *.ipch
 *.log
 *.tmp
+imgui.ini
+
+# Test artifacts
+*.png
+!assets/starfield.png
 
 # CMake / generated files
 CMakeFiles/

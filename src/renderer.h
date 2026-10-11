@@ -8,14 +8,16 @@ namespace kerr
 
     struct RenderSettings
     {
-        // Defaults tuned for a usable first run on mid-range Windows GPUs.
-        int maxSteps = 96;
+        // Defaults tuned for high-fidelity real-time rendering on RTX / modern GPUs.
+        int maxSteps = 240;
         float diskBrightness = 1.0f;
-        float starBrightness = 0.8f;
-        float bloomIntensity = 0.20f;
+        float starBrightness = 0.85f;
+        float bloomIntensity = 0.22f;
         bool showGrid = false;
         bool showTrail = false;
         bool showPhotonSphere = false;
+        int diskStyle = 0;       // 0 Classic Interstellar, 1 High-Energy Sapphire, 2 Naked Lens, 3 Doppler Heatmap
+        bool showReticle = true; // Sci-fi cockpit reticle / crosshair overlay
     };
 
     class Renderer

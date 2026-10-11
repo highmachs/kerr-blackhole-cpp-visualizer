@@ -56,6 +56,19 @@ namespace kerr
         double omega; // frame-dragging angular velocity (ZAMO)
     };
 
+    // Exact analytic derivative dR/dr of Carter radial potential:
+    // R(r) = [(r^2 + a^2)E - a L]^2 - Delta * [ r^2 + (L - a E)^2 + Q ]
+    // Smooth polynomial across all r, including horizons, r=0, and negative r.
+    inline double carterRadialDerivative(const BlackHole &bh, double r, double E, double L, double Q)
+    {
+        const double a = bh.a;
+        const double M = bh.M;
+        const double K = (L - a * E) * (L - a * E) + Q;
+        const double P = (r * r + a * a) * E - a * L;
+        const double Delta = r * r - 2.0 * M * r + a * a;
+        return 4.0 * r * E * P - (2.0 * r - 2.0 * M) * (r * r + K) - 2.0 * r * Delta;
+    }
+
     inline Coeffs metricCoeffs(const BlackHole &bh, double r, double theta)
     {
         const double a = bh.a;

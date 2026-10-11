@@ -56,10 +56,10 @@ namespace kerr
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void *)0);
         glBindVertexArray(0);
 
-        // Try .hdr, then .png, then .jpg — first that exists wins.
+        // Try .png, then .hdr, then .jpg — first that exists wins.
         std::string base = std::string(ASSET_DIR) + "/starfield";
-        if (!loadStarfield(base + ".hdr"))
-            if (!loadStarfield(base + ".png"))
+        if (!loadStarfield(base + ".png"))
+            if (!loadStarfield(base + ".hdr"))
                 loadStarfield(base + ".jpg"); // last resort -> procedural fallback
         return true;
     }
@@ -113,19 +113,58 @@ namespace kerr
         unsigned char *data = stbi_load(path.c_str(), &w, &h, &n, 3);
         if (!data)
         {
-            starfieldIsFile_ = false;
-            const int pw = 1024, ph = 512;
+            starfieldIsFile_ = true;
+            const int pw = 2048, ph = 1024;
             std::vector<unsigned char> pix(pw * ph * 3, 0);
             unsigned int seed = 0xC0FFEEu;
             auto rnd = [&]()
             { seed = seed * 1664525u + 1013904223u; return seed; };
-            for (int i = 0; i < pw * ph; ++i)
+
+            // 1. Subtle galactic plane nebula band (Warm Ash & Dried Clay)
+            for (int y = 0; y < ph; ++y)
             {
-                unsigned int v = rnd();
-                unsigned char s = ((v & 0xFFFF) < 96) ? 220 + (v >> 24 & 0x1F) : 0;
-                pix[3 * i + 0] = s;
-                pix[3 * i + 1] = s;
-                pix[3 * i + 2] = s;
+                float ny = ((float)y / (float)ph - 0.5f) * 2.0f; // -1 to 1
+                float band = std::exp(-ny * ny * 18.0f);
+                for (int x = 0; x < pw; ++x)
+                {
+                    float nx = (float)x / (float)pw;
+                    float wave = 0.5f + 0.5f * std::sin(nx * 12.566f + ny * 3.0f);
+                    float dust = band * (0.04f + 0.05f * wave);
+                    int idx = (y * pw + x) * 3;
+                    pix[idx + 0] = (unsigned char)std::clamp(dust * 196.0f, 0.0f, 255.0f);
+                    pix[idx + 1] = (unsigned char)std::clamp(dust * 181.0f, 0.0f, 255.0f);
+                    pix[idx + 2] = (unsigned char)std::clamp(dust * 165.0f, 0.0f, 255.0f);
+                }
+            }
+
+            // 2. Multi-magnitude stars with anti-aliased splats
+            const int numStars = 5000;
+            for (int i = 0; i < numStars; ++i)
+            {
+                int sx = rnd() % pw;
+                int sy = rnd() % ph;
+                unsigned int rval = rnd();
+                float brightness = 140.0f + (rval & 0x7F);
+                // 10% very bright stars with larger radius
+                bool isMajor = (rval % 10 == 0);
+                if (isMajor) brightness = 255.0f;
+
+                int radius = isMajor ? 2 : 1;
+                for (int dy = -radius; dy <= radius; ++dy)
+                {
+                    for (int dx = -radius; dx <= radius; ++dx)
+                    {
+                        int px_ = (sx + dx + pw) % pw;
+                        int py_ = std::clamp(sy + dy, 0, ph - 1);
+                        float dist2 = (float)(dx * dx + dy * dy);
+                        float falloff = std::exp(-dist2 / (isMajor ? 1.2f : 0.6f));
+                        int idx = (py_ * pw + px_) * 3;
+                        float val = brightness * falloff;
+                        pix[idx + 0] = (unsigned char)std::min(255.0f, pix[idx + 0] + val);
+                        pix[idx + 1] = (unsigned char)std::min(255.0f, pix[idx + 1] + val * 0.96f);
+                        pix[idx + 2] = (unsigned char)std::min(255.0f, pix[idx + 2] + val * 0.90f);
+                    }
+                }
             }
             glGenTextures(1, &starfield_);
             glBindTexture(GL_TEXTURE_2D, starfield_);
@@ -171,6 +210,8 @@ namespace kerr
         ui("u_mode", (int)cam.mode);
         ui("u_showPhotonSphere", s.showPhotonSphere ? 1 : 0);
         ui("u_showGrid", s.showGrid ? 1 : 0);
+        ui("u_diskStyle", s.diskStyle);
+        ui("u_showReticle", s.showReticle ? 1 : 0);
         uf("u_a", (float)cam.bh.a);
         uf("u_M", (float)cam.bh.M);
         uf("u_time", timeSec);

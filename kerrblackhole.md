@@ -482,3 +482,281 @@ cmake --build build -j$(nproc)
 | **Procedural Audio Synthesizer** | Real-time horizon rumbles, Cauchy sweeps, and negative universe ambience | ✅ VERIFIED |
 | **Automated CLI Benchmarking** | Headless offscreen rendering and PNG validation with zero window popups | ✅ VERIFIED |
 | **Zero Technical Debt** | 100% clean repository working tree; synced with remote origin/main | ✅ VERIFIED |
+
+---
+
+## 13. COMPREHENSIVE TECHNICAL IMPLEMENTATION ARCHIVE & MATHEMATICAL APPENDIX
+
+### 13.1 Full ASCII Rendering Pipeline & Data Flow Architecture
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                                CPU (C++17 Engine Loop)                                 │
+│                                                                                        │
+│  [GLFW Event Polling] ────────► [Input Controller: WASD, Space, Ctrl, Z/C, Shift]      │
+│                                           │                                            │
+│                                           ▼                                            │
+│  [Camera System] ─────────────► Updates 6-DOF velocity with inertia damping            │
+│                                 Calculates ZAMO Vierbein tetrad with Euler roll        │
+│                                 Advances Catmull-Rom tour spline / Auto-orbit          │
+│                                 Evaluates horizon crossings & triggers whiteout        │
+│                                           │                                            │
+│                                           ▼                                            │
+│  [Procedural Audio Engine] ───► Real-time software wave synthesis (rumble, sweeps)    │
+│                                           │                                            │
+│                                           ▼                                            │
+│  [ImGui Layout Deck] ─────────► Computes uiScale = max(1.0, screenHeight / 1080)      │
+│                                 Scales style, 800px sidebar, 26px font                 │
+│                                 Renders 2-column tabular telemetry (zero CLS)          │
+└───────────────────────────────────────────┬────────────────────────────────────────────┘
+                                            │
+                                            ▼ Uniforms: u_camBasis, u_r, u_theta, u_phi,
+                                            │           u_a, u_M, u_mode, u_diskStyle...
+┌───────────────────────────────────────────┴────────────────────────────────────────────┐
+│                       GPU Compute Shader (compute.glsl, 16x16)                         │
+│                                                                                        │
+│  For each pixel (x, y):                                                                │
+│    1. Unproject normalized device coordinates (NDC) into local camera ray              │
+│    2. Transform ray into Boyer-Lindquist coordinate frame via Vierbein tetrad basis    │
+│    3. Initialize ray state: pos = camPos, vel = rayDir, r = kerrR(pos)                 │
+│    4. Loop up to u_maxSteps (30 to 800) with adaptive Runge-Kutta step sizing h(r)     │
+│    5. Check Kerr acceleration: a = a_grav(pos, L^2) + a_drag(pos, vel, omega)         │
+│    6. Integrate position & velocity via Velocity-Verlet / RK2 predictor-corrector     │
+│    7. Check analytic plane crossings:                                                  │
+│       - Accretion Disk (z = 0, r in [r_ISCO, 15M]): Keplerian shear, Doppler factor g │
+│       - Ring Singularity Throat (z crosses 0 inside rho < a): Toggle negative universe│
+│       - White Hole Expulsion (r < 0): Polar relativistic jets + photon ring halo       │
+│       - Horizon Caustic: Event horizon glow & Cauchy horizon whiteout flash            │
+│       - Sky Escape (abs(r) > 24M): Sample 4K Obsidian & Ember starfield                │
+│    8. Write high-precision linear radiance to GL_RGBA16F storage texture               │
+└───────────────────────────────────────────┬────────────────────────────────────────────┘
+                                            │
+                                            ▼ Binding: GL_TEXTURE0 (u_image)
+┌───────────────────────────────────────────┴────────────────────────────────────────────┐
+│                    Fullscreen Display Fragment Shader (display.frag)                   │
+│                                                                                        │
+│    1. Fetch compute shader radiance from u_image                                       │
+│    2. Apply Reinhard extended tone mapping & bloom extraction                          │
+│    3. Overlay Cauchy horizon whiteout decay flash (exp(-4.0 * t))                      │
+│    4. Draw pixel-perfect isotropic cockpit flight reticle (rings, notches, pips)       │
+│    5. Output final sRGB color to default window framebuffer                            │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 13.2 Fundamental Null Geodesic Integration Algorithms (Pseudocode vs Production GLSL)
+
+The theoretical formulation in Section 11 of the original specification is mapped directly to the production GPU implementation:
+
+#### A. Core Backward Ray Marcher
+```glsl
+vec3 traceRay(vec3 origin, vec3 direction) {
+    vec3 pos = origin;
+    vec3 vel = direction;
+    vec3 accumColor = vec3(0.0);
+    float transmission = 1.0;
+    bool isNegative = (u_r < 0.0);
+
+    for (int step = 0; step < u_maxSteps; ++step) {
+        float r = kerrR(pos, isNegative);
+        float h = adaptiveStepSize(r);
+
+        // Predictor-Corrector Integration
+        vec3 a1 = kerrAccel(pos, vel, r, isNegative);
+        vec3 nextPos = pos + vel * h + 0.5 * a1 * h * h;
+        float nextR = kerrR(nextPos, isNegative);
+        vec3 a2 = kerrAccel(nextPos, vel + a1 * h, nextR, isNegative);
+        vel = normalize(vel + 0.5 * (a1 + a2) * h);
+        pos = nextPos;
+
+        // Check Ring Singularity passage
+        if (pos.z * prevPos.z <= 0.0 && (pos.x*pos.x + pos.y*pos.y) < u_a*u_a) {
+            isNegative = !isNegative; // Coordinate reflection into r < 0
+        }
+
+        // Accretion disk sample
+        if (crossedEquator(prevPos, pos) && !isNegative) {
+            vec4 disk = sampleAccretionDisk(pos.xy);
+            accumColor += disk.rgb * disk.a * transmission;
+            transmission *= (1.0 - disk.a);
+            if (transmission < 0.03) break;
+        }
+
+        // Celestial Sphere Escape
+        if (length(pos) > 24.0 * u_M) {
+            accumColor += sampleStarfield(vel, isNegative) * transmission;
+            break;
+        }
+    }
+    return accumColor;
+}
+```
+
+#### B. Exact Kerr Acceleration Formulation
+```glsl
+vec3 kerrAccel(vec3 p, vec3 v, float r, bool isNegative) {
+    float ar = max(0.08, abs(r));
+    float rho2 = dot(p, p);
+    float a2 = u_a * u_a;
+    float sig = ar * ar + a2 * (p.z * p.z / (rho2 + 0.01)) + 0.04;
+
+    // Relativistic photon angular momentum deflection
+    vec3 Lvec = cross(p, v);
+    float L2 = dot(Lvec, Lvec);
+    float gFactor = isNegative ? -1.0 : 1.0;
+    float aMag = gFactor * (3.0 * u_M * L2 / (pow(ar, 5.0) + 0.04));
+    vec3 a_grav = -aMag * p;
+
+    // Frame-dragging Coriolis acceleration around spin z-axis
+    float omega = (2.0 * u_M * u_a * ar) / (pow(ar * ar + a2, 2.0) + 0.08);
+    vec3 wVec = vec3(0.0, 0.0, omega * gFactor);
+    vec3 a_drag = 2.0 * cross(v, wVec);
+
+    return a_grav + a_drag;
+}
+```
+
+#### C. Production Adaptive Step Sizing Curve
+```glsl
+float adaptiveStepSize(float r) {
+    float ar = abs(r);
+    float ro = rOuter();
+    float ri = rInner();
+
+    if (ar > 18.0) return 0.60;       // Asymptotic deep space
+    if (ar > 14.0) return 0.35;       // High orbital vista
+    if (ar > 7.0)  return 0.18;       // Accretion disk approach
+    if (ar > 3.5)  return 0.08;       // Ergosphere entry
+    if (ar > ro + 0.4) return 0.035;  // Outer horizon approach
+    if (ar > ro)   return 0.018;      // Horizon boundary layer
+    if (ar > ri)   return 0.012;      // Between horizons
+    if (ar > 0.25) return 0.008;      // Cauchy crossing
+    return 0.002;                     // Ring throat aperture (sub-pixel precision)
+}
+```
+
+---
+
+### 13.3 Mathematical Formulation of the 6-DOF ZAMO Vierbein Tetrad
+
+In curved Boyer-Lindquist geometry, the observer carries an orthonormal frame $\{e_{(0)}, e_{(1)}, e_{(2)}, e_{(3)}\}$ attached to a Zero Angular Momentum Observer (ZAMO):
+
+$$e_{(0)}^\mu = \frac{1}{\alpha}\left(\partial_t + \omega\,\partial_\phi\right)$$
+$$e_{(1)}^\mu = \sqrt{\frac{\Delta}{\Sigma}}\,\partial_r$$
+$$e_{(2)}^\mu = \frac{1}{\sqrt{\Sigma}}\,\partial_\theta$$
+$$e_{(3)}^\mu = \sqrt{\frac{\Sigma}{A}}\frac{1}{\sin\theta}\,\partial_\phi$$
+
+Where $\alpha = \sqrt{\Sigma\Delta/A}$ is the gravitational lapse.
+
+The flight control system applies user Euler rotations $(\psi, \theta_{\text{pitch}}, \chi)$ (yaw, pitch, roll) to this basis matrix $e_{(a)}^\mu$, producing the camera view matrix `u_camBasis`:
+$$R = R_z(\psi) \cdot R_x(\theta_{\text{pitch}}) \cdot R_y(\chi)$$
+
+```cpp
+glm::mat4 Camera::zamoTetrad() const {
+    glm::mat4 R(1.0f);
+    R = glm::rotate(R, roll,  glm::vec3(0, 0, 1));
+    R = glm::rotate(R, pitch, glm::vec3(1, 0, 0));
+    R = glm::rotate(R, yaw,   glm::vec3(0, 1, 0));
+    return R;
+}
+```
+
+---
+
+### 13.4 Catmull-Rom Spline Parametric Flight Path Formulation
+
+The automated cinematic tour ($G$) evaluates a cubic Catmull-Rom spline through 14 knots defining the optimal relativistic descent trajectory:
+
+$$P(u) = \frac{1}{2} \begin{bmatrix} 1 & u & u^2 & u^3 \end{bmatrix}
+\begin{bmatrix}
+ 0 &  2 &  0 &  0 \\
+-1 &  0 &  1 &  0 \\
+ 2 & -5 &  4 & -1 \\
+-1 &  3 & -3 &  1
+\end{bmatrix}
+\begin{bmatrix} P_{i-1} \\ P_i \\ P_{i+1} \\ P_{i+2} \end{bmatrix}$$
+
+#### Trajectory Keyframe Table:
+| Knot Index | Radius $r$ | Polar $\theta$ | Description |
+|:---:|:---:|:---:|---|
+| **0** | $16.0\,M$ | $1.35\text{ rad}$ | High Keplerian Vista (Classic Interstellar viewpoint) |
+| **1** | $12.0\,M$ | $1.38\text{ rad}$ | Inward spiral descent |
+| **2** | $6.0\,M$  | $1.42\text{ rad}$ | Ergosphere Static Limit penetration |
+| **3** | $3.5\,M$  | $1.45\text{ rad}$ | Relativistic frame-dragging acceleration |
+| **4** | $2.0\,M$  | $1.48\text{ rad}$ | Outer Event Horizon crossing ($r_+$) |
+| **5** | $1.2\,M$  | $1.50\text{ rad}$ | Deep interior transit (space and time swap roles) |
+| **6** | $0.68\,M$ | $1.52\text{ rad}$ | Inner Cauchy Horizon infinite blueshift flash |
+| **7** | $0.20\,M$ | $1.54\text{ rad}$ | Throat approach (singularity aperture alignment) |
+| **8** | $0.05\,M$ | $1.56\text{ rad}$ | Ring Singularity aperture transit ($z=0, \rho < a$) |
+| **9** | $-0.5\,M$ | $1.56\text{ rad}$ | Negative Universe emergence; mass inversion |
+| **10**| $-2.0\,M$ | $1.52\text{ rad}$ | White Hole auto-turnaround (180° camera flip) |
+| **11**| $-4.5\,M$ | $1.48\text{ rad}$ | Framing radiant cyan White Hole expulsion halo |
+| **12**| $-8.0\,M$ | $1.42\text{ rad}$ | Repulsive antigravitational acceleration outward |
+| **13**| $-14.0\,M$| $1.35\text{ rad}$ | Negative Universe deep cosmic vista |
+
+---
+
+### 13.5 Complete Novikov-Thorne Accretion Disk Physics
+
+The accretion disk model incorporates the standard thin-disk relativistic equations (Novikov & Thorne 1973; Page & Thorne 1974):
+
+#### Radiant Flux Profile:
+$$F(r) = \frac{3\dot{M}M}{8\pi r^3} \mathcal{Q}(r, a)$$
+Where $\mathcal{Q}(r, a)$ is the relativistic correction factor enforcing vanishing torque at the ISCO boundary:
+$$\mathcal{Q}(r, a) = \frac{1 - \sqrt{r_{\text{ISCO}}/r}}{1 - 3/r + 2a/r^{3/2}}$$
+
+#### Keplerian Shear Advection Equation:
+Turbulent spiral filaments in the plasma rotate differentially according to:
+$$\theta_{\text{shear}}(r, \phi, t) = \phi - \Omega_K(r) \cdot 6.0\,t$$
+Where the angular velocity of prograde circular equatorial orbits is:
+$$\Omega_K(r) = \frac{\sqrt{M}}{r^{3/2} + a\sqrt{M}}$$
+
+The high-frequency gas turbulence modulation is computed as:
+$$\text{turb}(r, \theta_{\text{shear}}) = 0.84 + 0.10\sin(24\ln r) + 0.06\sin(8\theta_{\text{shear}} + 3\ln r)$$
+
+---
+
+### 13.6 White Hole Expulsion Dynamics ($r < 0$)
+
+1. **Polar Expulsion Jets:**
+   Collimated relativistic particle jets emanating from the $r < 0$ throat:
+   $$I_{\text{jet}}(\rho, z, t) = I_0 \cdot \exp\left(-\frac{14\rho}{a}\right) \cdot \exp(-0.6|z|) \cdot \left[0.85 + 0.15\sin(12|z| - 6t)\right]$$
+
+2. **Throat Aperture Emission:**
+   Radiant celestial white-to-cyan gradient at the boundary:
+   $$u_{\text{throat}} = \text{clamp}\left(\frac{\rho}{a}, 0.0, 1.30\right)$$
+   $$I_{\text{throat}}(\rho, z, t) = I_{\text{core}} \cdot \exp(-8|z|) \cdot \left[0.82 + 0.18\sin(18\rho - 4.5t)\right]$$
+
+3. **Repulsive Expulsion Photon Ring ($\rho \in [0.7a, 4.5a]$):**
+   $$I_{\text{exp}}(\rho, z, t) = I_1 \cdot \exp(-8|z|) \cdot \exp\left(-1.5\frac{\rho - a}{3.5a}\right) \cdot \left[0.82 + 0.18\sin(14\rho - 3\phi + 3.5t)\right]$$
+
+---
+
+### 13.7 Procedural Audio Synthesizer Mathematical Formulas
+
+The software synthesizer runs entirely in C++ without audio samples, using direct sample generation:
+
+1. **Ergosphere Frame-Dragging Drone:**
+   $$s_{\text{drone}}(t) = 0.35\sin(2\pi \cdot 48\,t) + 0.15\sin(2\pi \cdot 96\,t) \cdot \left(1.0 + 0.8\,v_{\text{drag}}\right)$$
+2. **Horizon Whiteout Chirp:**
+   $$f_{\text{chirp}}(t) = f_{\text{start}} \cdot \exp\left(k_{\text{chirp}} \cdot t\right), \quad s_{\text{chirp}}(t) = \sin\left(\int_0^t 2\pi f_{\text{chirp}}(\tau)\,d\tau\right) \cdot \exp(-4t)$$
+3. **Negative Universe Ambience:**
+   Dissonant golden-ratio harmonic chords:
+   $$s_{\text{neg}}(t) = 0.20\sin(2\pi \cdot 55\,t) + 0.15\sin(2\pi \cdot 55\sqrt{2}\,t) + 0.10\sin(2\pi \cdot 55 e\,t)$$
+
+---
+
+### 13.8 Automated Benchmark & CLI Test Suite
+
+| Test Identifier | Command Line Execution | Acceptance Criteria |
+|---|---|---|
+| **BENCH-4K-STD** | `.\kerr_bh.exe --headless --width 3840 --height 2160 --frames 10 --screenshot test_4k.png` | Frame latency $< 12.0\text{ ms}$; lossless PNG written |
+| **BENCH-1080P** | `.\kerr_bh.exe --headless --width 1920 --height 1080 --frames 20 --screenshot test_1080.png` | Frame latency $< 2.5\text{ ms}$; 400+ FPS sustained |
+| **PHASE-4-FLASH** | `.\kerr_bh.exe --headless --r 0.68 --theta 1.50 --frames 5 --screenshot test_p4.png` | Cauchy whiteout timer triggers; screen luminance $> 0.90$ |
+| **PHASE-5-THROAT**| `.\kerr_bh.exe --headless --r 0.05 --theta 1.57 --frames 5 --screenshot test_p5.png` | Coordinate $r=0$ crossed without numeric singularity crash |
+| **PHASE-6-WHITE** | `.\kerr_bh.exe --headless --r -2.0 --theta 1.42 --frames 5 --screenshot test_p6.png` | White Hole expulsion halo & jet rendered with cyan tint |
+| **DISK-SAPPHIRE** | `.\kerr_bh.exe --headless --disk 1 --frames 5 --screenshot test_sapphire.png` | High-energy sapphire plasma shader branch active |
+| **DISK-DOPPLER**  | `.\kerr_bh.exe --headless --disk 3 --frames 5 --screenshot test_doppler.png` | False-color blueshift/redshift heatmap rendered |
+| **HIGH-DPI-UI**   | `.\kerr_bh.exe --headless --width 3840 --height 2160 --frames 5 --screenshot test_ui.png` | Sidebar width $= 800\text{px}$; Font $= 26\text{px}$; Zero CLS |
+

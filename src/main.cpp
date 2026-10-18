@@ -366,7 +366,7 @@ namespace
 
         // --- Single Unified Sidebar (Right side, scaled for 4K / High-DPI) ---
         ImGuiIO &io = ImGui::GetIO();
-        float sideWidth = 400.0f * scale; // 800px at 4K (2.0x scale)
+        float sideWidth = 460.0f * scale; // 920px at 4K (2.0x scale)
         float screenW = (io.DisplaySize.x > 0.0f) ? io.DisplaySize.x : (float)g_app->fbWidth;
         float screenH = (io.DisplaySize.y > 0.0f) ? io.DisplaySize.y : (float)g_app->fbHeight;
         ImGui::SetNextWindowPos(ImVec2(screenW - sideWidth - 20.0f * scale, 20.0f * scale), ImGuiCond_Always);
@@ -505,7 +505,7 @@ namespace
             }
 
             // === TAB 2: TELEPORT & PHASES ===
-            if (ImGui::BeginTabItem("Phases (1-6)"))
+            if (ImGui::BeginTabItem("Phases"))
             {
                 ImGui::Spacing();
                 ImGui::Text("Click or press 1 to 6 on keyboard:");
@@ -648,6 +648,90 @@ namespace
                 ImGui::EndTabItem();
             }
 
+            // === TAB 5: FLIGHT MANUAL & HELP ===
+            if (ImGui::BeginTabItem("Flight Manual"))
+            {
+                ImGui::Spacing();
+                ImGui::TextColored(ImVec4(0.3f, 0.85f, 1.0f, 1.0f), "6-DOF FLIGHT CONTROLS GUIDE");
+                ImGui::Separator();
+                if (ImGui::BeginTable("##ControlsGuideTable", 2, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_NoSavedSettings))
+                {
+                    ImGui::TableSetupColumn("Key / Input", ImGuiTableColumnFlags_WidthStretch, 0.36f);
+                    ImGui::TableSetupColumn("Function & Details", ImGuiTableColumnFlags_WidthStretch, 0.64f);
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0); ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.3f, 1.0f), "W / S");
+                    ImGui::TableSetColumnIndex(1); ImGui::TextUnformatted("Thrust Forward / Backward along crosshair");
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0); ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.3f, 1.0f), "A / D");
+                    ImGui::TableSetColumnIndex(1); ImGui::TextUnformatted("Strafe Lateral Left / Right");
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0); ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.3f, 1.0f), "Space / E");
+                    ImGui::TableSetColumnIndex(1); ImGui::TextUnformatted("Vertical Ascend (Fly Up)");
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0); ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.3f, 1.0f), "Ctrl / Q");
+                    ImGui::TableSetColumnIndex(1); ImGui::TextUnformatted("Vertical Descend (Fly Down)");
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0); ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.3f, 1.0f), "Z / C");
+                    ImGui::TableSetColumnIndex(1); ImGui::TextUnformatted("Roll Left / Roll Right (True 6-DOF)");
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0); ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.3f, 1.0f), "Left Shift");
+                    ImGui::TableSetColumnIndex(1); ImGui::TextUnformatted("Turbo Thrusters (3.0x Velocity Boost)");
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0); ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.3f, 1.0f), "TAB / Right-Drag");
+                    ImGui::TableSetColumnIndex(1); ImGui::TextUnformatted("Toggle Free-Look Mouse Capture / HUD Cursor");
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0); ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.3f, 1.0f), "P / H");
+                    ImGui::TableSetColumnIndex(1); ImGui::TextUnformatted("Toggle Cockpit HUD (Immersive Vista Mode)");
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0); ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.3f, 1.0f), "R");
+                    ImGui::TableSetColumnIndex(1); ImGui::TextUnformatted("Reset to Canonical Safe Orbit (r=14M, 77 deg)");
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0); ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.3f, 1.0f), "K");
+                    ImGui::TableSetColumnIndex(1); ImGui::TextUnformatted("Cycle Disk Style (Interstellar/Cyan/Naked/Doppler)");
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0); ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.3f, 1.0f), "T");
+                    ImGui::TableSetColumnIndex(1); ImGui::TextUnformatted("Toggle Boyer-Lindquist Coordinate Grid");
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0); ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.3f, 1.0f), "Keys 1 to 6");
+                    ImGui::TableSetColumnIndex(1); ImGui::TextUnformatted("Instant Teleport to GR Mission Phases");
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0); ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.3f, 1.0f), "O");
+                    ImGui::TableSetColumnIndex(1); ImGui::TextUnformatted("Capture Pristine High-Res PNG Screenshot");
+
+                    ImGui::EndTable();
+                }
+
+                ImGui::Spacing();
+                ImGui::TextColored(ImVec4(0.3f, 0.85f, 1.0f, 1.0f), "KERR BLACK HOLE PHYSICS EXPLAINED");
+                ImGui::Separator();
+                ImGui::BulletText("Phase 1 - Approach (r=14M): Distant Keplerian domain. Dual Einstein gravitational lensing rings visible around the spinning shadow.");
+                ImGui::BulletText("Phase 2 - Ergosphere & Outer Horizon (r=2M): Spacetime itself is dragged faster than light. Standing still is impossible.");
+                ImGui::BulletText("Phase 3 - Mid-Horizon (r=1M): Coordinates swap; timelike geodesics inexorably point towards the interior Cauchy horizon.");
+                ImGui::BulletText("Phase 4 - Cauchy Horizon Flash (r=0.68M): Infinite blueshift surface. Photons from the external universe pile up into a blinding relativistic ring.");
+                ImGui::BulletText("Phase 5 - Ring Singularity Throat (r=0.05M): Unlike Schwarzschild point singularities, Kerr rotation flattens the singularity into an open ring. Traversing the throat is mathematically permitted.");
+                ImGui::BulletText("Phase 6 - Negative Universe (r < 0): Entering negative radial space inverts gravitational mass into repulsive antigravity. Spacetime acts as a white hole.");
+
+                ImGui::Spacing();
+                ImGui::TextColored(ImVec4(0.3f, 0.85f, 1.0f, 1.0f), "SMOOTH PERFORMANCE & GPU SETUP");
+                ImGui::Separator();
+                ImGui::TextWrapped("The visualizer renders using real-time Runge-Kutta numerical geodesic integration. If your GPU drops below 11 FPS, the automatic protection banner will prompt you to switch to 1080p or 720p. You can freely change canvas resolution in the Display & GPU tab anytime.");
+
+                ImGui::EndTabItem();
+            }
+
             ImGui::EndTabBar();
         }
 
@@ -691,6 +775,7 @@ namespace
         }
     }
 
+    [[maybe_unused]]
     void GLAPIENTRY glDebug(GLenum, GLenum, GLuint, GLenum sev,
                             GLsizei, const GLchar *msg, const void *)
     {

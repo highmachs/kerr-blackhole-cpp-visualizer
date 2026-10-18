@@ -284,16 +284,18 @@ namespace
             return;
 
         float scale = g_app->uiScale;
+        ImGui::GetStyle().FontScaleMain = scale;
 
         // --- Minimal Top-Left Quick Info Banner (Clean, no overlap) ---
         ImGui::SetNextWindowPos(ImVec2(20.0f * scale, 20.0f * scale), ImGuiCond_Always);
-        ImGui::SetNextWindowBgAlpha(0.65f);
+        ImGui::SetNextWindowBgAlpha(0.70f);
         ImGuiWindowFlags hudFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
                                     ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
                                     ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove;
         if (ImGui::Begin("##ControlsHUD", nullptr, hudFlags))
         {
-            ImGui::TextColored(ImVec4(1.0f, 0.72f, 0.20f, 1.0f), "FLIGHT:");
+            ImGui::SetWindowFontScale(scale);
+            ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.20f, 1.0f), "FLIGHT:");
             ImGui::SameLine();
             ImGui::Text("WASD = fly | Space/E = up | Ctrl/Q = down | Shift = turbo | TAB = mouse | P or H = hide UI");
         }
@@ -304,18 +306,19 @@ namespace
 
         // --- Single Unified Sidebar (Right side, scaled for 4K / High-DPI) ---
         ImGuiIO &io = ImGui::GetIO();
-        float sideWidth = 380.0f * scale; // 760px at 4K (2.0x scale)
+        float sideWidth = 400.0f * scale; // 800px at 4K (2.0x scale)
         float screenW = (io.DisplaySize.x > 0.0f) ? io.DisplaySize.x : (float)g_app->fbWidth;
         float screenH = (io.DisplaySize.y > 0.0f) ? io.DisplaySize.y : (float)g_app->fbHeight;
         ImGui::SetNextWindowPos(ImVec2(screenW - sideWidth - 20.0f * scale, 20.0f * scale), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(sideWidth, screenH - 40.0f * scale), ImGuiCond_Always);
-        ImGui::SetNextWindowBgAlpha(0.85f);
+        ImGui::SetNextWindowBgAlpha(0.88f);
         ImGui::Begin("Kerr Navigator - Control Deck", nullptr, ImGuiWindowFlags_NoCollapse);
+        ImGui::SetWindowFontScale(scale);
 
         if (ImGui::BeginTabBar("ControlDeckTabs"))
         {
-            // === TAB 1: TELEMETRY & LORE ===
-            if (ImGui::BeginTabItem("Telemetry & Lore"))
+            // === TAB 1: TELEMETRY ===
+            if (ImGui::BeginTabItem("Telemetry"))
             {
                 double r = cam.r, a = cam.bh.a, M = cam.bh.M;
                 double cosT = std::cos(cam.theta);
@@ -356,56 +359,87 @@ namespace
                 ImGui::TextWrapped("%s", zoneLore);
                 ImGui::Separator();
 
-                ImGui::Text("Vortex Drag Speed:  %.3f c", vDrag);
+                // Telemetry Metrics Grid (Zero layout shift, clean columns)
+                if (ImGui::BeginTable("##TelemetryTable", 2, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_NoSavedSettings))
+                {
+                    ImGui::TableSetupColumn("Metric", ImGuiTableColumnFlags_WidthStretch, 0.46f);
+                    ImGui::TableSetupColumn("Value",  ImGuiTableColumnFlags_WidthStretch, 0.54f);
 
-                if (r > 2.0 * M) {
-                    double dFact = 1.0 - (2.0 * M * r) / sigma;
-                    double dilation = (dFact > 0.0001) ? (1.0 / std::sqrt(dFact)) : 999.0;
-                    if (dilation < 60.0)
-                        ImGui::Text("Time Dilation:      1s ship = %.1fs Earth", dilation);
-                    else if (dilation < 3600.0)
-                        ImGui::Text("Time Dilation:      1s ship = %.1f min Earth", dilation / 60.0);
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0); ImGui::TextUnformatted("Vortex Drag:");
+                    ImGui::TableSetColumnIndex(1); ImGui::Text("%.3f c", vDrag);
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0); ImGui::TextUnformatted("Time Dilation:");
+                    ImGui::TableSetColumnIndex(1);
+                    if (r > 2.0 * M) {
+                        double dFact = 1.0 - (2.0 * M * r) / sigma;
+                        double dilation = (dFact > 0.0001) ? (1.0 / std::sqrt(dFact)) : 999.0;
+                        if (dilation < 60.0)
+                            ImGui::Text("1s = %.1fs Earth", dilation);
+                        else if (dilation < 3600.0)
+                            ImGui::Text("1s = %.1f min Earth", dilation / 60.0);
+                        else
+                            ImGui::Text("1s = %.1f hrs Earth", dilation / 3600.0);
+                    } else if (r > 0.0) {
+                        ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "[INVERTED]");
+                    } else {
+                        ImGui::TextColored(ImVec4(0.2f, 0.85f, 1.0f, 1.0f), "[REPULSIVE]");
+                    }
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0); ImGui::TextUnformatted("Tidal Shear:");
+                    ImGui::TableSetColumnIndex(1); ImGui::Text("%.2f G/m", tidal);
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0); ImGui::TextUnformatted("Hull Integrity:");
+                    ImGui::TableSetColumnIndex(1);
+                    if (tidal < 0.1f)
+                        ImGui::TextColored(ImVec4(0.2f, 0.9f, 0.3f, 1.0f), "100%% (Nominal)");
+                    else if (tidal < 1.0f)
+                        ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, 1.0f), "CAUTION (High Shear)");
                     else
-                        ImGui::Text("Time Dilation:      1s ship = %.1f hrs Earth", dilation / 3600.0);
-                } else if (r > 0.0) {
-                    ImGui::Text("Time Dilation:      [SIGNATURE INVERTED]");
-                } else {
-                    ImGui::Text("Time Dilation:      [NEGATIVE REPULSIVE FLOW]");
+                        ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "DANGER (Spaghetti)");
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0); ImGui::TextUnformatted("Radius / Theta:");
+                    ImGui::TableSetColumnIndex(1); ImGui::Text("r = %.2f M | th = %.2f", cam.r, cam.theta);
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0); ImGui::TextUnformatted("Ray Pacing:");
+                    ImGui::TableSetColumnIndex(1); ImGui::Text("%d stp | %.1fms (%.0f fps)",
+                                                              g_app->renderer.lastSteps(), frameMs, 1000.0 / std::max(0.001, frameMs));
+
+                    ImGui::EndTable();
                 }
-
-                ImGui::Text("Tidal Shear Force:  %.2f G/m", tidal);
-                if (tidal < 0.1f)
-                    ImGui::TextColored(ImVec4(0.2f, 0.9f, 0.3f, 1.0f), "Hull Integrity:     100%% (Safe)");
-                else if (tidal < 1.0f)
-                    ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, 1.0f), "Hull Integrity:     CAUTION (High Shear)");
-                else
-                    ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "Hull Integrity:     DANGER (Spaghettification)");
-
-                ImGui::Separator();
-                ImGui::Text("Radius r = %.3f M   Theta = %.2f rad", cam.r, cam.theta);
-                ImGui::Text("Steps/Ray: %d   Frame: %.1f ms (%.0f FPS)",
-                            g_app->renderer.lastSteps(), frameMs, 1000.0 / std::max(0.001, frameMs));
 
                 ImGui::Separator();
                 ImGui::Text("Autopilot Systems:");
+                float btnW = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
+
                 if (cam.isAutoOrbit) {
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.4f, 0.1f, 1.0f));
-                    if (ImGui::Button("ORBIT LOCKED (Press X to unlock)")) cam.toggleAutoOrbit();
+                    if (ImGui::Button("ORBIT LOCKED (X)", ImVec2(btnW, 0))) cam.toggleAutoOrbit();
                     ImGui::PopStyleColor();
                 } else {
-                    if (ImGui::Button("Lock Circular Orbit (X)")) cam.toggleAutoOrbit();
+                    if (ImGui::Button("Lock Orbit (X)", ImVec2(btnW, 0))) cam.toggleAutoOrbit();
                 }
 
                 ImGui::SameLine();
                 if (cam.isTouring) {
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.6f, 0.8f, 1.0f));
-                    if (ImGui::Button("TOURING (G to stop)")) cam.toggleTour();
+                    if (ImGui::Button("STOP TOUR (G)", ImVec2(btnW, 0))) cam.toggleTour();
                     ImGui::PopStyleColor();
-                    ImGui::ProgressBar(std::min(1.0f, cam.tourTime / 30.0f), ImVec2(-1, 0), "Cruising to Negative Universe");
                 } else {
-                    if (ImGui::Button("Cinematic Tour (G)")) cam.toggleTour();
+                    if (ImGui::Button("Cinematic Tour (G)", ImVec2(btnW, 0))) cam.toggleTour();
                 }
 
+                if (cam.isTouring) {
+                    ImGui::Spacing();
+                    ImGui::ProgressBar(std::min(1.0f, cam.tourTime / 30.0f), ImVec2(-1, 0), "Cruising to Negative Universe");
+                }
+
+                ImGui::Spacing();
                 ImGui::SliderFloat("Sim Speed", &cam.simSpeed, 0.1f, 5.0f, "%.2fx");
                 ImGui::EndTabItem();
             }
@@ -417,25 +451,32 @@ namespace
                 ImGui::Text("Click or press 1 to 6 on keyboard:");
                 ImGui::Spacing();
 
-                if (ImGui::Button("1. Approach Vista (14M)")) jumpToPhase(1);
-                if (ImGui::Button("2. Outer Event Horizon (2.0M)")) jumpToPhase(2);
-                if (ImGui::Button("3. Between Horizons (1.0M)")) jumpToPhase(3);
-                if (ImGui::Button("4. Cauchy Crossing Flash (0.68M)")) jumpToPhase(4);
-                if (ImGui::Button("5. Ring Singularity Throat (0.05M)")) jumpToPhase(5);
-                if (ImGui::Button("6. Negative Universe (-2.0M)")) jumpToPhase(6);
+                float phaseBtnW = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
+                if (ImGui::Button("1. Approach (14M)", ImVec2(phaseBtnW, 0))) jumpToPhase(1);
+                ImGui::SameLine();
+                if (ImGui::Button("2. Outer Horizon (2M)", ImVec2(phaseBtnW, 0))) jumpToPhase(2);
+
+                if (ImGui::Button("3. Mid-Horizon (1M)", ImVec2(phaseBtnW, 0))) jumpToPhase(3);
+                ImGui::SameLine();
+                if (ImGui::Button("4. Cauchy Flash (0.68M)", ImVec2(phaseBtnW, 0))) jumpToPhase(4);
+
+                if (ImGui::Button("5. Ring Throat (0.05M)", ImVec2(phaseBtnW, 0))) jumpToPhase(5);
+                ImGui::SameLine();
+                if (ImGui::Button("6. Negative Univ (-2M)", ImVec2(phaseBtnW, 0))) jumpToPhase(6);
 
                 ImGui::Separator();
                 float aSpin = (float)cam.bh.a;
-                if (ImGui::SliderFloat("Black Hole Spin a", &aSpin, 0.0f, 0.99f))
+                if (ImGui::SliderFloat("Spin a", &aSpin, 0.0f, 0.99f))
                 {
                     cam.bh.a = aSpin;
                     cam.reset();
                 }
 
                 ImGui::Spacing();
-                if (ImGui::Button("Reset Orbit (R)")) cam.reset();
+                float actionBtnW = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
+                if (ImGui::Button("Reset Orbit (R)", ImVec2(actionBtnW, 0))) cam.reset();
                 ImGui::SameLine();
-                if (ImGui::Button("Screenshot (O)")) g_app->renderer.screenshot("screenshot.png");
+                if (ImGui::Button("Screenshot (O)", ImVec2(actionBtnW, 0))) g_app->renderer.screenshot("screenshot.png");
                 ImGui::EndTabItem();
             }
 
@@ -465,11 +506,12 @@ namespace
 
                 ImGui::Separator();
                 ImGui::Text("Quality / Performance Presets:");
-                if (ImGui::Button("Cinematic (320)")) set.maxSteps = 320;
+                float thirdW = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x * 2.0f) / 3.0f;
+                if (ImGui::Button("Cinematic (320)", ImVec2(thirdW, 0))) set.maxSteps = 320;
                 ImGui::SameLine();
-                if (ImGui::Button("Balanced (240)"))  set.maxSteps = 240;
+                if (ImGui::Button("Balanced (240)", ImVec2(thirdW, 0)))  set.maxSteps = 240;
                 ImGui::SameLine();
-                if (ImGui::Button("Fast (140)"))      set.maxSteps = 140;
+                if (ImGui::Button("Fast (140)", ImVec2(thirdW, 0)))      set.maxSteps = 140;
 
                 ImGui::SliderInt("Steps / Ray", &set.maxSteps, 30, 800);
 
@@ -477,7 +519,7 @@ namespace
                 ImGui::Text("Interface Scaling (Auto 4K DPI):");
                 if (ImGui::SliderFloat("UI Scale", &g_app->uiScale, 1.0f, 3.0f, "%.2fx"))
                 {
-                    ImGui::GetIO().FontGlobalScale = g_app->uiScale;
+                    ImGui::GetStyle().FontScaleMain = g_app->uiScale;
                 }
                 ImGui::EndTabItem();
             }
@@ -642,7 +684,7 @@ int main(int argc, char **argv)
     // Scale font to 26px (io.FontGlobalScale = uiScale) so text is large, bold, and readable.
     float autoScale = std::max(1.0f, (float)app.fbHeight / 1080.0f);
     app.uiScale = autoScale;
-    io.FontGlobalScale = autoScale;
+    ImGui::GetStyle().FontScaleMain = autoScale;
     ImGui::GetStyle().ScaleAllSizes(autoScale);
 
     ImGui_ImplGlfw_InitForOpenGL(win, true);

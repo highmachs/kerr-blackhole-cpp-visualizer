@@ -1,0 +1,46 @@
+name: Release Standalone Windows Package
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure CMake
+        run: cmake -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build Standalone Executable
+        run: cmake --build build --config Release
+
+      - name: Package Standalone Distribution
+        shell: pwsh
+        run: |
+          $pkg = "dist/kerr-blackhole-windows-x64"
+          New-Item -ItemType Directory -Force -Path "$pkg/shaders", "$pkg/assets"
+          Copy-Item "build/Release/kerr_bh.exe" "$pkg/"
+          Copy-Item "shaders/*" "$pkg/shaders/"
+          Copy-Item "assets/*" "$pkg/assets/"
+          @"
+          @echo off
+          title Kerr Black Hole Interior Navigator
+          cd /d "%~dp0"
+          start "" "%~dp0kerr_bh.exe"
+          "@ | Set-Content "$pkg/Run_Kerr_Navigator.bat" -Encoding ASCII
+          Compress-Archive -Path "$pkg/*" -DestinationPath "kerr-blackhole-windows-x64.zip" -Force
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: kerr-blackhole-windows-x64.zip
+          generate_release_notes: true

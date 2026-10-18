@@ -7,6 +7,7 @@
 #include "stb_image_write.h"
 
 #include <glm/gtc/matrix_transform.hpp>
+#include <filesystem>
 #include <vector>
 #include <cstring>
 #include <cstdio>
@@ -38,7 +39,15 @@ namespace kerr
 
         glGenVertexArrays(1, &vao_);
 
-        std::string sd = SHADER_DIR;
+        // Support portable standalone distribution: check local "shaders" first, then fallback to SHADER_DIR
+        std::string sd = "shaders";
+        if (!std::filesystem::exists(sd + "/compute.glsl"))
+        {
+#ifdef SHADER_DIR
+            sd = SHADER_DIR;
+#endif
+        }
+
         computeProg_ = loadComputeProgram(sd + "/compute.glsl");
         displayProg_ = loadGraphicsProgram(sd + "/fullscreen.vert",
                                            sd + "/display.frag");
@@ -56,8 +65,17 @@ namespace kerr
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void *)0);
         glBindVertexArray(0);
 
+        // Support portable standalone distribution: check local "assets" first, then fallback to ASSET_DIR
+        std::string ad = "assets";
+        if (!std::filesystem::exists(ad + "/starfield.png") && !std::filesystem::exists(ad + "/starfield.hdr"))
+        {
+#ifdef ASSET_DIR
+            ad = ASSET_DIR;
+#endif
+        }
+
         // Try .png, then .hdr, then .jpg — first that exists wins.
-        std::string base = std::string(ASSET_DIR) + "/starfield";
+        std::string base = ad + "/starfield";
         if (!loadStarfield(base + ".png"))
             if (!loadStarfield(base + ".hdr"))
                 loadStarfield(base + ".jpg"); // last resort -> procedural fallback

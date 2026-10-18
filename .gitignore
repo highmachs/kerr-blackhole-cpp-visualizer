@@ -11,6 +11,8 @@ out/
 *.log
 *.tmp
 imgui.ini
+dist/
+*.zip
 
 # Test artifacts
 *.png

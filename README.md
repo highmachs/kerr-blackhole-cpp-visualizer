@@ -1,18 +1,23 @@
 # Kerr Black Hole Interior Navigator
 
-[![Live Web Simulation](https://img.shields.io/badge/Live_Web_Simulator-GitHub_Pages-00e5ff?style=for-the-badge&logo=github)](https://highmachs.github.io/kerr-blackhole-cpp-visualizer/)
+[![Download Windows x64](https://img.shields.io/badge/Download-Windows_x64_Application_(.zip)-00e5ff?style=for-the-badge&logo=windows)](https://github.com/highmachs/kerr-blackhole-cpp-visualizer/releases/latest)
 [![Resolution](https://img.shields.io/badge/Resolution-360p_to_8K_Ultra_HD-ff4d1a?style=for-the-badge)](https://github.com/highmachs/kerr-blackhole-cpp-visualizer)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
-An interactive, scientifically rigorous real-time Kerr black hole and Negative Universe raymarching simulator built with **C++20, OpenGL 4.6, GLFW, GLM, Dear ImGui, and GLSL compute shaders**, accompanied by an **instant in-browser WebGL 2 Web Simulator** hosted for free on GitHub Pages.
+An interactive, scientifically rigorous real-time Kerr black hole and Negative Universe raymarching simulator built with **C++20, OpenGL 4.6, GLFW, GLM, Dear ImGui, and GLSL compute shaders**.
+
+Runs **100% natively on your GPU** with multi-threaded performance, zero browser overhead, and sustained 60–400+ FPS.
 
 ---
 
-## 🌐 Try It Directly in Your Browser (No Download Required)
+## ⚡ Quick Start: Download & Run (Zero Install)
 
-You can explore the full Kerr spacetime, Novikov-Thorne accretion disk, and Negative Universe right now without installing anything:
+No compiler, Visual Studio, or dependencies required. Everything is pre-built and self-contained in a single portable zip package:
 
-👉 **[https://highmachs.github.io/kerr-blackhole-cpp-visualizer/](https://highmachs.github.io/kerr-blackhole-cpp-visualizer/)**
+1. **[Download the Latest Windows Release (.zip)](https://github.com/highmachs/kerr-blackhole-cpp-visualizer/releases/latest)**
+2. Extract the `.zip` archive to any folder on your computer.
+3. Double-click **`Run_Kerr_Navigator.bat`** (or **`kerr_bh.exe`**).
+4. Enjoy smooth 60–400+ FPS raymarching!
 
 ---
 
@@ -32,21 +37,24 @@ If your GPU frame rate drops below 11 FPS for more than 2 seconds, the simulator
 
 ## Controls
 
-| Key | Action |
+| Key / Action | Function |
 | --- | --- |
-| W/S | Increase or decrease inward radial velocity |
-| A/D | Adjust angular momentum |
-| Q/E | Adjust Carter constant |
-| Mouse | Look around |
-| Space | Reset to default infall trajectory |
-| R | Reset simulation |
-| T | Toggle debug grid |
-| P | Toggle debug panel and geodesic trail |
-| O | Capture screenshot |
-| V | Toggle vsync |
-| F11 | Toggle fullscreen |
-| Tab | Toggle mouse capture |
-| Esc | Quit |
+| **W / A / S / D** | 3D Flight Thrusters (Forward / Left / Backward / Right) |
+| **Space or E** | Vertical Lift Thruster (Up) |
+| **Left-Ctrl or Q** | Vertical Descent Thruster (Down) |
+| **Left-Shift** | Turbo Booster (3.0x thrust speed) |
+| **Mouse Click** | Lock mouse cursor to 3D Viewport for free-look |
+| **Z / C** | 6-DOF Camera Roll (Roll Left / Roll Right) |
+| **1 to 6** | Instant Quantum Teleportation across all 6 spacetime phases |
+| **G** | Cinematic Guided Tour (Cruising through horizons into Negative Universe) |
+| **X** | Lock Keplerian Circular Orbit |
+| **R** | Reset Orbit to 14M Approach |
+| **K** | Cycle Accretion Disk Styles (Classic, Sapphire, Naked Lens, Doppler Heatmap) |
+| **O** | Capture Lossless Screenshot (`screenshot.png`) |
+| **V** | Toggle VSync |
+| **F11** | Toggle Borderless Fullscreen |
+| **Tab or Esc** | Release / Recapture Mouse Cursor |
+| **P or H** | Hide / Show HUD Interface |
 
 ## How To Use It
 

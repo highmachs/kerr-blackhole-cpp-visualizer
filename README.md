@@ -1,6 +1,6 @@
 # Kerr Black Hole Interior Navigator
 
-[![Download Windows x64](https://img.shields.io/badge/Download-Windows_x64_Application_(.zip)-00e5ff?style=for-the-badge&logo=windows)](https://github.com/highmachs/kerr-blackhole-cpp-visualizer/releases/latest)
+[![Download Standalone .EXE](https://img.shields.io/badge/Download-Standalone_kerrblackhole.exe_(3.1MB)-00e5ff?style=for-the-badge&logo=windows)](https://github.com/highmachs/kerr-blackhole-cpp-visualizer/releases/download/v1.0.0/kerrblackhole.exe)
 [![Resolution](https://img.shields.io/badge/Resolution-360p_to_8K_Ultra_HD-ff4d1a?style=for-the-badge)](https://github.com/highmachs/kerr-blackhole-cpp-visualizer)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
@@ -12,11 +12,11 @@ Runs **100% natively on your GPU** with multi-threaded performance, zero browser
 
 ## ⚡ Quick Start: Download & Run (Zero Install)
 
-No compiler, Visual Studio, or dependencies required. Everything is pre-built and self-contained in a single portable zip package:
+No compiler, Visual Studio, or dependencies required. Everything is pre-built and self-contained in a single portable `.exe`:
 
-1. **[Download the Latest Windows Release (.zip)](https://github.com/highmachs/kerr-blackhole-cpp-visualizer/releases/latest)**
-2. Extract the `.zip` archive to any folder on your computer.
-3. Double-click **`Run_Kerr_Navigator.bat`** (or **`kerr_bh.exe`**).
+1. **[Download kerrblackhole.exe (Single Portable Executable, ~3.1 MB)](https://github.com/highmachs/kerr-blackhole-cpp-visualizer/releases/download/v1.0.0/kerrblackhole.exe)**
+2. Double-click **`kerrblackhole.exe`** to run anywhere (Desktop, Downloads, USB).
+3. No extraction, no installers, no external folders needed! All shaders and assets are embedded.
 4. Enjoy smooth 60–400+ FPS raymarching!
 
 ---

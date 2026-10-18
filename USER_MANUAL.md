@@ -36,11 +36,10 @@ Unlike simplified 2D approximations or pre-baked animations, this visualizer ren
 
 ## 3. Quick Start Guide
 
-### Running the Standalone Release Package
-1. Download **`kerr-blackhole-v1.0.0-windows-x64.zip`** from the [GitHub Releases](https://github.com/highmachs/kerr-blackhole-cpp-visualizer/releases/tag/v1.0.0) page.
-2. Extract the ZIP archive anywhere on your PC.
-3. Double-click **`Run_Kerr_Navigator.bat`** (or execute **`kerr_bh.exe`** directly).
-4. No installation, Python runtimes, or external frameworks required!
+### Running the Standalone Executable
+1. Download **`kerrblackhole.exe`** (Single portable executable, ~3.1 MB) from the [GitHub Releases](https://github.com/highmachs/kerr-blackhole-cpp-visualizer/releases/tag/v1.0.0) page.
+2. Double-click **`kerrblackhole.exe`** to run anywhere (Desktop, Downloads, or USB drive).
+3. No installation, unzipping, Python runtimes, or external frameworks required! Shaders and assets are fully embedded.
 
 ---
 

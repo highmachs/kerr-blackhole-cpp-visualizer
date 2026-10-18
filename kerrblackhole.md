@@ -96,50 +96,53 @@ $$
 
 ### 2.2 Horizons, Static Limit (Ergosphere) & Photon Sphere
 
-1. **Coordinate Singularities ($\Delta = 0$):**
-   Roots of $\Delta(r) = 0$ define the event horizons:
+#### 1. Coordinate Singularities ($\Delta = 0$)
+Roots of $\Delta(r) = 0$ define the event horizons:
 
-   $$
-   r_\pm = 1 \pm \sqrt{1 - a^2}
-   $$
+$$
+r_\pm = 1 \pm \sqrt{1 - a^2}
+$$
 
-   - Outer Event Horizon: $r_+ = 1 + \sqrt{1 - a^2}$ (at $a = 0.95$, $r_+ \approx 1.3122\,M$)
-   - Inner Cauchy Horizon: $r_- = 1 - \sqrt{1 - a^2}$ (at $a = 0.95$, $r_- \approx 0.6878\,M$)
-   - Extreme Kerr Limit: as $a \to 1$, $r_+ = r_- = M$. For $a > 1$, horizons vanish, yielding a naked singularity.
-2. **Static Limit Surface & Ergosphere ($g_{tt} = 0$):**
+- **Outer Event Horizon:** $r_+ = 1 + \sqrt{1 - a^2}$ (at $a = 0.95$, $r_+ \approx 1.3122\,M$)
+- **Inner Cauchy Horizon:** $r_- = 1 - \sqrt{1 - a^2}$ (at $a = 0.95$, $r_- \approx 0.6878\,M$)
+- **Extreme Kerr Limit:** as $a \to 1$, $r_+ = r_- = M$. For $a > 1$, horizons vanish, yielding a naked singularity.
 
-   $$
-   1 - \frac{2r}{\Sigma} = 0 \implies r_E^\pm(\theta) = 1 \pm \sqrt{1 - a^2\cos^2\theta}
-   $$
+#### 2. Static Limit Surface & Ergosphere ($g_{tt} = 0$)
 
-   The region between $r_+$ and $r_E^+(\theta)$ is the **Ergosphere**. Within this zone, $g_{tt} > 0$; no physical observer can remain static with respect to infinity ($dt/d\tau > 0 \implies d\phi/dt > 0$). Observers are dragged along with spacetime at the Zero Angular Momentum Observer (ZAMO) frame-dragging angular velocity:
+$$
+1 - \frac{2r}{\Sigma} = 0 \implies r_E^\pm(\theta) = 1 \pm \sqrt{1 - a^2\cos^2\theta}
+$$
 
-   $$
-   \omega(r, \theta) \equiv -\frac{g_{t\phi}}{g_{\phi\phi}} = \frac{2ar}{A}
-   $$
-3. **Innermost Stable Circular Orbit (ISCO):**
-   Computed analytically using the Bardeen-Petterson relations for prograde equatorial orbits:
+The region between $r_+$ and $r_E^+(\theta)$ is the **Ergosphere**. Within this zone, $g_{tt} > 0$; no physical observer can remain static with respect to infinity ($dt/d\tau > 0 \implies d\phi/dt > 0$). Observers are dragged along with spacetime at the Zero Angular Momentum Observer (ZAMO) frame-dragging angular velocity:
 
-   $$
-   Z_1 \equiv 1 + (1 - a^2)^{1/3}\left((1 + a)^{1/3} + (1 - a)^{1/3}\right)
-   $$
+$$
+\omega(r, \theta) \equiv -\frac{g_{t\phi}}{g_{\phi\phi}} = \frac{2ar}{A}
+$$
 
-   $$
-   Z_2 \equiv \sqrt{3a^2 + Z_1^2}
-   $$
+#### 3. Innermost Stable Circular Orbit (ISCO)
+Computed analytically using the Bardeen-Petterson relations for prograde equatorial orbits:
 
-   $$
-   r_{\text{ISCO}} = 3 + Z_2 - \sqrt{(3 - Z_1)(3 + Z_1 + 2Z_2)}
-   $$
+$$
+Z_1 \equiv 1 + (1 - a^2)^{1/3}\left((1 + a)^{1/3} + (1 - a)^{1/3}\right)
+$$
 
-   For $a = 0.95$, $r_{\text{ISCO}} \approx 1.937\,M$ (compared to $6.0\,M$ in non-rotating Schwarzschild spacetime).
-4. **Equatorial Prograde Photon Sphere ($r_{\text{ph}}$):**
+$$
+Z_2 \equiv \sqrt{3a^2 + Z_1^2}
+$$
 
-   $$
-   r_{\text{ph}} = 2\left(1 + \cos\left(\frac{2}{3}\arccos(-a)\right)\right)
-   $$
+$$
+r_{\text{ISCO}} = 3 + Z_2 - \sqrt{(3 - Z_1)(3 + Z_1 + 2Z_2)}
+$$
 
-   For $a = 0.95$, $r_{\text{ph}} \approx 1.455\,M$.
+For $a = 0.95$, $r_{\text{ISCO}} \approx 1.937\,M$ (compared to $6.0\,M$ in non-rotating Schwarzschild spacetime).
+
+#### 4. Equatorial Prograde Photon Sphere ($r_{\text{ph}}$)
+
+$$
+r_{\text{ph}} = 2\left(1 + \cos\left(\frac{2}{3}\arccos(-a)\right)\right)
+$$
+
+For $a = 0.95$, $r_{\text{ph}} \approx 1.455\,M$.
 
 ### 2.3 Constants of Motion, Carter Constant & Null Geodesics
 
@@ -222,13 +225,21 @@ Any geodesic approaching $r = 0$ with $\theta \neq \pi/2$ encounters **no infini
 
 In the analytic continuation $r < 0$:
 
-1. **Effective Mass Inversion:** In the metric, the Newtonian-order potential appears as $-2Mr/\Sigma$. For $r < 0$, substituting $r \to -|r|$ yields:
-   $$
-   \frac{2M(-|r|)}{|r|^2 + a^2\cos^2\theta} = -\frac{2M_{\text{eff}}}{|r|}, \quad M_{\text{eff}} = -M < 0
-   $$
-2. **Repulsive Geodesics:** Gravitational acceleration turns outward. Light rays and infalling particles are repelled away from the ring singularity toward $r = -\infty$.
-3. **White Hole Structure:** To an observer in $r < 0$, the central aperture acts as an expulsion source emitting radiant energy, jets, and photon rings—classically identical to a White Hole.
-4. **Closed Timelike Curves (CTCs):** In the region near $r < 0, \theta \approx \pi/2$, $g_{\phi\phi} < 0$. Integral curves of $\partial_\phi$ are closed timelike curves, theoretically permitting time travel under pure general relativity.
+#### 1. Effective Mass Inversion
+In the metric, the Newtonian-order potential appears as $-2Mr/\Sigma$. For $r < 0$, substituting $r \to -|r|$ yields:
+
+$$
+\frac{2M(-|r|)}{|r|^2 + a^2\cos^2\theta} = -\frac{2M_{\text{eff}}}{|r|}, \quad M_{\text{eff}} = -M < 0
+$$
+
+#### 2. Repulsive Geodesics
+Gravitational acceleration turns outward. Light rays and infalling particles are repelled away from the ring singularity toward $r = -\infty$.
+
+#### 3. White Hole Structure
+To an observer in $r < 0$, the central aperture acts as an expulsion source emitting radiant energy, jets, and photon rings—classically identical to a White Hole.
+
+#### 4. Closed Timelike Curves (CTCs)
+In the region near $r < 0, \theta \approx \pi/2$, $g_{\phi\phi} < 0$. Integral curves of $\partial_\phi$ are closed timelike curves, theoretically permitting time travel under pure general relativity.
 
 ### 2.6 Relativistic Doppler Factor, Beaming & Liouville's Invariant
 

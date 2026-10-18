@@ -1,5 +1,6 @@
 #include "renderer.h"
 #include "shader.h"
+#include "embedded_shaders.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -48,11 +49,15 @@ namespace kerr
 #endif
         }
 
-        computeProg_ = loadComputeProgram(sd + "/compute.glsl");
+        computeProg_ = loadComputeProgram(sd + "/compute.glsl", embedded::compute_glsl);
         displayProg_ = loadGraphicsProgram(sd + "/fullscreen.vert",
-                                           sd + "/display.frag");
+                                           sd + "/display.frag",
+                                           embedded::fullscreen_vert,
+                                           embedded::display_frag);
         trailProg_ = loadGraphicsProgram(sd + "/trail.vert",
-                                         sd + "/trail.frag");
+                                         sd + "/trail.frag",
+                                         embedded::trail_vert,
+                                         embedded::trail_frag);
         if (!computeProg_ || !displayProg_ || !trailProg_)
             return false;
 

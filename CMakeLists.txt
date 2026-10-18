@@ -93,6 +93,8 @@ add_executable(kerr_bh
 	src/audio.cpp
 )
 
+set_target_properties(kerr_bh PROPERTIES OUTPUT_NAME "kerrblackhole")
+
 target_include_directories(kerr_bh PRIVATE
 	src
 	third_party

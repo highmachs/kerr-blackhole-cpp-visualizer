@@ -13,7 +13,6 @@ namespace kerr
         std::ifstream f(path);
         if (!f)
         {
-            std::fprintf(stderr, "[shader] cannot open %s\n", path.c_str());
             return {};
         }
         std::stringstream ss;
@@ -63,19 +62,32 @@ namespace kerr
         return s;
     }
 
-    GLuint loadComputeProgram(const std::string &path)
+    GLuint loadComputeProgram(const std::string &path, const char *embeddedFallback)
     {
         std::string src = readFile(path);
+        std::string label = path;
         if (src.empty())
-            return 0;
-        GLuint cs = compile(GL_COMPUTE_SHADER, src, path);
+        {
+            if (embeddedFallback && embeddedFallback[0] != '\0')
+            {
+                src = embeddedFallback;
+                label = path + " [embedded]";
+                std::printf("[kerr] Using embedded compute shader for %s\n", path.c_str());
+            }
+            else
+            {
+                std::fprintf(stderr, "[kerr] Shader file missing and no embedded fallback: %s\n", path.c_str());
+                return 0;
+            }
+        }
+        GLuint cs = compile(GL_COMPUTE_SHADER, src, label);
         if (!cs)
             return 0;
         GLuint p = glCreateProgram();
         glAttachShader(p, cs);
         glLinkProgram(p);
         glDeleteShader(cs);
-        if (!checkProgram(p, path))
+        if (!checkProgram(p, label))
         {
             glDeleteProgram(p);
             return 0;
@@ -83,14 +95,43 @@ namespace kerr
         return p;
     }
 
-    GLuint loadGraphicsProgram(const std::string &vertPath, const std::string &fragPath)
+    GLuint loadGraphicsProgram(const std::string &vertPath, const std::string &fragPath,
+                               const char *embeddedVertFallback, const char *embeddedFragFallback)
     {
         std::string vsrc = readFile(vertPath);
+        std::string vlabel = vertPath;
+        if (vsrc.empty())
+        {
+            if (embeddedVertFallback && embeddedVertFallback[0] != '\0')
+            {
+                vsrc = embeddedVertFallback;
+                vlabel = vertPath + " [embedded]";
+            }
+            else
+            {
+                std::fprintf(stderr, "[kerr] Vertex shader missing and no fallback: %s\n", vertPath.c_str());
+                return 0;
+            }
+        }
+
         std::string fsrc = readFile(fragPath);
-        if (vsrc.empty() || fsrc.empty())
-            return 0;
-        GLuint vs = compile(GL_VERTEX_SHADER, vsrc, vertPath);
-        GLuint fs = compile(GL_FRAGMENT_SHADER, fsrc, fragPath);
+        std::string flabel = fragPath;
+        if (fsrc.empty())
+        {
+            if (embeddedFragFallback && embeddedFragFallback[0] != '\0')
+            {
+                fsrc = embeddedFragFallback;
+                flabel = fragPath + " [embedded]";
+            }
+            else
+            {
+                std::fprintf(stderr, "[kerr] Fragment shader missing and no fallback: %s\n", fragPath.c_str());
+                return 0;
+            }
+        }
+
+        GLuint vs = compile(GL_VERTEX_SHADER, vsrc, vlabel);
+        GLuint fs = compile(GL_FRAGMENT_SHADER, fsrc, flabel);
         if (!vs || !fs)
         {
             if (vs)
@@ -105,7 +146,7 @@ namespace kerr
         glLinkProgram(p);
         glDeleteShader(vs);
         glDeleteShader(fs);
-        if (!checkProgram(p, vertPath + "+" + fragPath))
+        if (!checkProgram(p, vlabel + "+" + flabel))
         {
             glDeleteProgram(p);
             return 0;

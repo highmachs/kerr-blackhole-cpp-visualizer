@@ -1,25 +1,34 @@
 # Kerr Black Hole Interior Navigator
 
-Windows-only Kerr black hole interior renderer built in C++17 with OpenGL 4.6, GLFW, GLM, Dear ImGui, GLSL compute shaders, and a CPU/GPU geodesic pipeline.
+[![Live Web Simulation](https://img.shields.io/badge/Live_Web_Simulator-GitHub_Pages-00e5ff?style=for-the-badge&logo=github)](https://highmachs.github.io/kerr-blackhole-cpp-visualizer/)
+[![Resolution](https://img.shields.io/badge/Resolution-360p_to_8K_Ultra_HD-ff4d1a?style=for-the-badge)](https://github.com/highmachs/kerr-blackhole-cpp-visualizer)
+[![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
-The repository root is the app root. The executable is built from [CMakeLists.txt](CMakeLists.txt) and the source lives in [src](src), [shaders](shaders), [assets](assets), and [third_party](third_party).
+An interactive, scientifically rigorous real-time Kerr black hole and Negative Universe raymarching simulator built with **C++20, OpenGL 4.6, GLFW, GLM, Dear ImGui, and GLSL compute shaders**, accompanied by an **instant in-browser WebGL 2 Web Simulator** hosted for free on GitHub Pages.
 
-## Quick Start
+---
 
-1. Build the app from the repository root with Visual Studio 2022 or Ninja.
-2. Run `build\Release\kerr_bh.exe`.
-3. Use the mouse to look around and W/S, A/D, Q/E to steer the infall path.
-4. Press `R` to reset, `T` to toggle the grid, `P` to toggle the debug panel and trail, and `O` to save a screenshot.
+## 🌐 Try It Directly in Your Browser (No Download Required)
 
-If the mouse is stuck, press `Tab` to toggle capture. Press `F11` for fullscreen and `Esc` to quit.
+You can explore the full Kerr spacetime, Novikov-Thorne accretion disk, and Negative Universe right now without installing anything:
 
-## What It Does
+👉 **[https://highmachs.github.io/kerr-blackhole-cpp-visualizer/](https://highmachs.github.io/kerr-blackhole-cpp-visualizer/)**
 
-- Render a rotating Kerr black hole with an accretion disk and relativistic starfield
-- Cross the outer horizon, inner Cauchy horizon, and ring singularity into negative-r mode
-- Show a debug grid, geodesic trail, photon sphere glow, and whiteout flash transitions
-- Play procedural audio cues for horizon and singularity events
-- Capture screenshots from inside the app
+---
+
+## 🖥️ Dynamic In-App Resolution Switching & GPU Protection
+
+The simulator includes live in-app render resolution scaling with hardware bilinear filtering:
+- **360p (640x360)**: Ultra-low latency for laptops and integrated GPUs.
+- **720p (1280x720)**: High performance (120+ FPS) on budget GPUs.
+- **1080p (1920x1080)**: Full HD balanced fidelity.
+- **1440p / 2K (2560x1440)**: Crisp high-density visuals.
+- **4K UHD (3840x2160)**: Extreme raymarching cinematic fidelity.
+- **8K Super-Res (7680x4320)**: Extreme stress test and ultra-dense benchmark mode.
+- **Match Window (1:1)**: Dynamic real-time canvas matching your current window dimensions.
+
+### 🛡️ Automatic GPU Overload Lag Recovery
+If your GPU frame rate drops below 11 FPS for more than 2 seconds, the simulator detects the overload and triggers an emergency alert banner allowing instant 1-click downscaling to 1080p or 720p Safe Mode.
 
 ## Controls
 

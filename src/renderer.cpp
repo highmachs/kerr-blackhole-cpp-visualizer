@@ -189,7 +189,7 @@ namespace kerr
         return true;
     }
 
-    void Renderer::render(const Camera &cam, const RenderSettings &s, float timeSec)
+    void Renderer::render(const Camera &cam, const RenderSettings &s, float timeSec, int displayWidth, int displayHeight)
     {
         // 1. Compute pass.
         glUseProgram(computeProg_);
@@ -238,7 +238,10 @@ namespace kerr
         lastSteps_ = s.maxSteps;
 
         // 2. Display pass.
-        glViewport(0, 0, W_, H_);
+        int dispW = (displayWidth > 0) ? displayWidth : W_;
+        int dispH = (displayHeight > 0) ? displayHeight : H_;
+
+        glViewport(0, 0, dispW, dispH);
         glClearColor(0.04f, 0.03f, 0.027f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         glDisable(GL_DEPTH_TEST);
@@ -249,18 +252,21 @@ namespace kerr
         glUniform1i(glGetUniformLocation(displayProg_, "u_image"), 0);
         glUniform1f(glGetUniformLocation(displayProg_, "u_bloom"), s.bloomIntensity);
         glUniform1f(glGetUniformLocation(displayProg_, "u_whiteout"), cam.whiteoutTimer);
-        glUniform2f(glGetUniformLocation(displayProg_, "u_res"), (float)W_, (float)H_);
+        glUniform2f(glGetUniformLocation(displayProg_, "u_res"), (float)dispW, (float)dispH);
 
         glBindVertexArray(vao_);
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
         // 3. Trail overlay (optional).
         if (s.showTrail && cam.trail.size() >= 2)
-            drawTrail(cam);
+            drawTrail(cam, dispW, dispH);
     }
 
-    void Renderer::drawTrail(const Camera &cam)
+    void Renderer::drawTrail(const Camera &cam, int displayWidth, int displayHeight)
     {
+        int dispW = (displayWidth > 0) ? displayWidth : W_;
+        int dispH = (displayHeight > 0) ? displayHeight : H_;
+
         std::vector<float> verts;
         verts.reserve(cam.trail.size() * 3);
         for (const auto &p : cam.trail)
@@ -285,7 +291,7 @@ namespace kerr
                        (float)(cam.r * std::cos(cam.theta)));
         glm::mat4 view = glm::lookAt(camP, camP + fwd, up);
         glm::mat4 proj = glm::perspective(glm::radians(60.0f),
-                                          (float)W_ / (float)H_, 0.05f, 200.0f);
+                                          (float)dispW / (float)dispH, 0.05f, 200.0f);
         glm::mat4 vp = proj * view;
         glUniformMatrix4fv(glGetUniformLocation(trailProg_, "u_viewProj"), 1, GL_FALSE, &vp[0][0]);
         glUniform1i(glGetUniformLocation(trailProg_, "u_count"), (int)cam.trail.size());

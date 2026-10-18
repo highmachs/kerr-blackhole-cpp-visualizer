@@ -27,7 +27,7 @@ namespace kerr
         void resize(int width, int height);
         void shutdown();
         bool loadStarfield(const std::string &path);
-        void render(const Camera &cam, const RenderSettings &s, float timeSec);
+        void render(const Camera &cam, const RenderSettings &s, float timeSec, int displayWidth = 0, int displayHeight = 0);
         bool screenshot(const std::string &path) const;
 
         int width() const { return W_; }
@@ -35,7 +35,7 @@ namespace kerr
         int lastSteps() const { return lastSteps_; }
 
     private:
-        void drawTrail(const Camera &cam);
+        void drawTrail(const Camera &cam, int displayWidth = 0, int displayHeight = 0);
 
         int W_ = 0, H_ = 0;
         GLuint image_ = 0;

@@ -30,6 +30,23 @@ extern "C" {
 namespace
 {
 
+    struct ResPresetItem
+    {
+        const char *name;
+        int w;
+        int h;
+    };
+
+    static const ResPresetItem kResPresets[] = {
+        {"360p  (640x360) - Low GPU / Laptop",    640,  360},
+        {"720p  (1280x720) - Fast / 120+ FPS",   1280,  720},
+        {"1080p (1920x1080) - Full HD Balanced",  1920, 1080},
+        {"1440p (2560x1440) - 2K High Fidelity",   2560, 1440},
+        {"4K    (3840x2160) - Ultra HD Native",    3840, 2160},
+        {"8K    (7680x4320) - Extreme Stress",     7680, 4320},
+        {"Match Window (1:1 Native Canvas)",         0,    0}
+    };
+
     struct AppState
     {
         kerr::Camera camera;
@@ -40,6 +57,13 @@ namespace
         bool mouseCaptured = true;
         double lastMouseX = 0, lastMouseY = 0;
         int fbWidth = 1920, fbHeight = 1080;
+        int renderWidth = 1920, renderHeight = 1080;
+        int resPreset = 2; // Default 1080p balanced
+        float renderScale = 1.0f; // 0.25x to 2.0x
+        bool autoGpuRecovery = true;
+        float frameMsSmoothed = 16.6f;
+        float lowFpsDuration = 0.0f;
+        bool gpuLagAlert = false;
         float uiScale = 1.0f; // High-DPI UI scaling factor (2.0x on 4K)
         bool vsync = true;
         kerr::UniverseMode audioPrevMode = kerr::UniverseMode::NORMAL;
@@ -50,13 +74,33 @@ namespace
 
     AppState *g_app = nullptr;
 
+    void applyResolutionPreset(int presetIdx, float scale = 1.0f)
+    {
+        if (!g_app)
+            return;
+        g_app->resPreset = std::clamp(presetIdx, 0, 6);
+        g_app->renderScale = std::clamp(scale, 0.25f, 2.0f);
+        int baseW = (g_app->resPreset == 6 || kResPresets[g_app->resPreset].w <= 0) ? g_app->fbWidth : kResPresets[g_app->resPreset].w;
+        int baseH = (g_app->resPreset == 6 || kResPresets[g_app->resPreset].h <= 0) ? g_app->fbHeight : kResPresets[g_app->resPreset].h;
+        int targetW = std::clamp((int)(baseW * g_app->renderScale), 320, 7680);
+        int targetH = std::clamp((int)(baseH * g_app->renderScale), 180, 4320);
+        g_app->renderWidth = targetW;
+        g_app->renderHeight = targetH;
+        g_app->renderer.resize(targetW, targetH);
+        std::printf("[kerr] Resolution switched to %dx%d (Preset %d '%s', Scale %.2fx)\n",
+                    targetW, targetH, g_app->resPreset, kResPresets[g_app->resPreset].name, g_app->renderScale);
+    }
+
     void onFramebufferSize(GLFWwindow *, int w, int h)
     {
         if (w == 0 || h == 0)
             return;
         g_app->fbWidth = w;
         g_app->fbHeight = h;
-        g_app->renderer.resize(w, h);
+        if (g_app->resPreset == 6)
+        {
+            applyResolutionPreset(6, g_app->renderScale);
+        }
     }
 
     void jumpToPhase(int phaseIndex)
@@ -540,10 +584,111 @@ namespace
                 ImGui::EndTabItem();
             }
 
+            // === TAB 4: RESOLUTION & GPU PROTECTION ===
+            if (ImGui::BeginTabItem("Display & GPU"))
+            {
+                ImGui::Spacing();
+                ImGui::TextColored(ImVec4(0.3f, 0.85f, 1.0f, 1.0f), "DYNAMIC RENDER RESOLUTION");
+                ImGui::TextWrapped("Change render canvas resolution on-the-fly. Hardware upscaling fills your window smoothly.");
+                ImGui::Spacing();
+
+                const char *resLabels[] = {
+                    "360p  (640x360) - Low GPU / Laptop",
+                    "720p  (1280x720) - Fast / 120+ FPS",
+                    "1080p (1920x1080) - Full HD Balanced",
+                    "1440p (2560x1440) - 2K High Fidelity",
+                    "4K    (3840x2160) - Ultra HD Native",
+                    "8K    (7680x4320) - Extreme Stress",
+                    "Match Window (1:1 Native Canvas)"
+                };
+
+                int currentPreset = g_app->resPreset;
+                if (ImGui::Combo("Resolution Preset", &currentPreset, resLabels, 7))
+                {
+                    applyResolutionPreset(currentPreset, g_app->renderScale);
+                }
+
+                if (ImGui::SliderFloat("Render Scale", &g_app->renderScale, 0.25f, 2.0f, "%.2fx"))
+                {
+                    applyResolutionPreset(g_app->resPreset, g_app->renderScale);
+                }
+
+                ImGui::Separator();
+                ImGui::Text("GPU Telemetry & Display Pipeline:");
+                ImGui::BulletText("Render Buffer: %d x %d (%.2f MP)",
+                                  g_app->renderer.width(), g_app->renderer.height(),
+                                  (float)(g_app->renderer.width() * g_app->renderer.height()) / 1000000.0f);
+                ImGui::BulletText("Window Display: %d x %d", g_app->fbWidth, g_app->fbHeight);
+                float upscaleRatio = (g_app->renderer.height() > 0) ? ((float)g_app->fbHeight / (float)g_app->renderer.height()) : 1.0f;
+                ImGui::BulletText("Display Upscaling: %.2fx (Hardware Linear)", upscaleRatio);
+                ImGui::BulletText("Smooth Frame Time: %.1f ms (~%.0f FPS)", g_app->frameMsSmoothed, 1000.0f / std::max(1.0f, g_app->frameMsSmoothed));
+
+                ImGui::Separator();
+                ImGui::Checkbox("Auto-Protect on GPU Lag (<11 FPS)", &g_app->autoGpuRecovery);
+                if (ImGui::Checkbox("VSync (Limit to Monitor Hz)", &g_app->vsync))
+                {
+                    glfwSwapInterval(g_app->vsync ? 1 : 0);
+                }
+
+                ImGui::Spacing();
+                ImGui::Text("Emergency Quick Recovery:");
+                float halfBtnW = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
+                if (ImGui::Button("Quick Safe 1080p", ImVec2(halfBtnW, 0)))
+                {
+                    applyResolutionPreset(2, 1.0f);
+                    g_app->gpuLagAlert = false;
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Quick Light 720p", ImVec2(halfBtnW, 0)))
+                {
+                    applyResolutionPreset(1, 1.0f);
+                    g_app->gpuLagAlert = false;
+                }
+
+                ImGui::EndTabItem();
+            }
+
             ImGui::EndTabBar();
         }
 
         ImGui::End();
+
+        // --- GPU Lag / Overload Emergency Alert Banner ---
+        if (g_app->gpuLagAlert)
+        {
+            float alertW = std::min(screenW - 40.0f * scale, 750.0f * scale);
+            ImGui::SetNextWindowPos(ImVec2(screenW * 0.5f - alertW * 0.5f, 20.0f * scale), ImGuiCond_Always);
+            ImGui::SetNextWindowSize(ImVec2(alertW, 0.0f), ImGuiCond_Always);
+            ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.85f, 0.12f, 0.12f, 0.95f));
+            ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.8f, 0.2f, 1.0f));
+            if (ImGui::Begin("##GPULagAlert", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove))
+            {
+                ImGui::SetWindowFontScale(scale);
+                ImGui::TextColored(ImVec4(1.0f, 0.9f, 0.2f, 1.0f), "WARNING: SEVERE GPU OVERLOAD DETECTED!");
+                ImGui::Text("Frame latency spiked to %.1f ms (<11 FPS). Raymarching at %dx%d exceeds GPU throughput.",
+                            g_app->frameMsSmoothed, g_app->renderer.width(), g_app->renderer.height());
+                ImGui::Spacing();
+                float alertBtnW = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x * 2.0f) / 3.0f;
+                if (ImGui::Button("Downscale to 1080p", ImVec2(alertBtnW, 0)))
+                {
+                    applyResolutionPreset(2, 1.0f);
+                    g_app->gpuLagAlert = false;
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Downscale to 720p", ImVec2(alertBtnW, 0)))
+                {
+                    applyResolutionPreset(1, 1.0f);
+                    g_app->gpuLagAlert = false;
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Dismiss Alert", ImVec2(alertBtnW, 0)))
+                {
+                    g_app->gpuLagAlert = false;
+                }
+            }
+            ImGui::End();
+            ImGui::PopStyleColor(2);
+        }
     }
 
     void GLAPIENTRY glDebug(GLenum, GLenum, GLuint, GLenum sev,
@@ -665,7 +810,22 @@ int main(int argc, char **argv)
     glfwGetFramebufferSize(win, &fbw, &fbh);
     app.fbWidth = fbw;
     app.fbHeight = fbh;
-    if (!app.renderer.init(fbw, fbh))
+
+    // Detect startup preset based on initial requested window dimension
+    if (winW <= 720) app.resPreset = 0;       // 360p
+    else if (winW <= 1366) app.resPreset = 1; // 720p
+    else if (winW <= 2000) app.resPreset = 2; // 1080p
+    else if (winW <= 2800) app.resPreset = 3; // 1440p
+    else if (winW <= 4200) app.resPreset = 4; // 4K
+    else if (winW <= 8000) app.resPreset = 5; // 8K
+    else app.resPreset = 6;                   // Match window
+
+    int initialRenderW = (app.resPreset == 6 || kResPresets[app.resPreset].w <= 0) ? fbw : kResPresets[app.resPreset].w;
+    int initialRenderH = (app.resPreset == 6 || kResPresets[app.resPreset].h <= 0) ? fbh : kResPresets[app.resPreset].h;
+    app.renderWidth = initialRenderW;
+    app.renderHeight = initialRenderH;
+
+    if (!app.renderer.init(initialRenderW, initialRenderH))
     {
         std::fprintf(stderr, "renderer init failed (shaders missing?)\n");
         return 1;
@@ -746,7 +906,23 @@ int main(int argc, char **argv)
             app.audioPrevMode = app.camera.mode;
         }
 
-        app.renderer.render(app.camera, app.settings, (float)tsec);
+        // GPU Latency & Overload Monitoring
+        float currentFrameMs = (float)(dt * 1000.0);
+        app.frameMsSmoothed = app.frameMsSmoothed * 0.92f + currentFrameMs * 0.08f;
+        if (app.frameMsSmoothed > 90.0f && app.autoGpuRecovery && !headless)
+        {
+            app.lowFpsDuration += (float)dt;
+            if (app.lowFpsDuration > 2.5f)
+            {
+                app.gpuLagAlert = true;
+            }
+        }
+        else
+        {
+            app.lowFpsDuration = std::max(0.0f, app.lowFpsDuration - (float)dt * 0.5f);
+        }
+
+        app.renderer.render(app.camera, app.settings, (float)tsec, app.fbWidth, app.fbHeight);
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();

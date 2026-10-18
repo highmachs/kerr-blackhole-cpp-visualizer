@@ -277,10 +277,13 @@ namespace kerr
 
         // Build a simple view-projection that orbits the BH around the camera
         // current position so the trail appears anchored in world space.
+        glm::mat4 tetrad = cam.zamoTetrad();
+        glm::vec3 fwd = -glm::vec3(tetrad[2]);
+        glm::vec3 up  = glm::vec3(tetrad[1]);
         glm::vec3 camP((float)(cam.r * std::sin(cam.theta) * std::cos(cam.phi)),
-                       (float)(cam.r * std::cos(cam.theta)),
-                       (float)(cam.r * std::sin(cam.theta) * std::sin(cam.phi)));
-        glm::mat4 view = glm::lookAt(camP, camP + cam.lookDir, glm::vec3(0, 1, 0));
+                       (float)(cam.r * std::sin(cam.theta) * std::sin(cam.phi)),
+                       (float)(cam.r * std::cos(cam.theta)));
+        glm::mat4 view = glm::lookAt(camP, camP + fwd, up);
         glm::mat4 proj = glm::perspective(glm::radians(60.0f),
                                           (float)W_ / (float)H_, 0.05f, 200.0f);
         glm::mat4 vp = proj * view;

@@ -195,20 +195,10 @@ void main() {
         u_r * cosTh0
     );
 
-    // Orthonormal camera frame pointing directly at black hole center
-    vec3 fwd = -normalize(camPos);
-    vec3 worldUp = vec3(0.0, 0.0, 1.0);
-    vec3 right = cross(fwd, worldUp);
-    if (length(right) < 1e-4) right = vec3(1.0, 0.0, 0.0);
-    right = normalize(right);
-    vec3 up = cross(right, fwd);
-
     // Ray direction in local camera space with wide-angle FOV
     vec3 camRay = normalize(vec3(uv.x, uv.y, -1.0));
-    // Apply user yaw/pitch rotation from host
-    vec3 rotatedRay = normalize((u_camBasis * vec4(camRay, 0.0)).xyz);
-    // Transform to world coordinates: rotatedRay.x -> right, rotatedRay.y -> up, -rotatedRay.z -> fwd
-    vec3 rayDir = normalize(rotatedRay.x * right + rotatedRay.y * up - rotatedRay.z * fwd);
+    // Transform directly to world coordinates using camera basis
+    vec3 rayDir = normalize((u_camBasis * vec4(camRay, 0.0)).xyz);
 
     vec3 pos = camPos;
     vec3 vel = rayDir;

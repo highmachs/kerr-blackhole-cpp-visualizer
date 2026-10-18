@@ -252,6 +252,22 @@ namespace
         g_app->camera.applyMouse((float)dx, (float)-dy);
     }
 
+    void onMouseButton(GLFWwindow *win, int button, int action, int /*mods*/)
+    {
+        if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+        {
+            if (!ImGui::GetIO().WantCaptureMouse && !g_app->mouseCaptured)
+            {
+                g_app->mouseCaptured = true;
+                glfwSetInputMode(win, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+                double x, y;
+                glfwGetCursorPos(win, &x, &y);
+                g_app->lastMouseX = x;
+                g_app->lastMouseY = y;
+            }
+        }
+    }
+
     void pollInput(GLFWwindow *win, double dt)
     {
         auto down = [&](int k)
@@ -666,6 +682,7 @@ int main(int argc, char **argv)
     glfwSetFramebufferSizeCallback(win, onFramebufferSize);
     glfwSetKeyCallback(win, onKey);
     glfwSetCursorPosCallback(win, onCursor);
+    glfwSetMouseButtonCallback(win, onMouseButton);
     if (!headless)
     {
         glfwSetInputMode(win, GLFW_CURSOR, GLFW_CURSOR_DISABLED);

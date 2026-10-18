@@ -76,6 +76,17 @@ void Camera::applyInput(float fwd, float side, float updown, float rollInput, do
     glm::vec3 nextPos = pos + moveVec;
     double newDist = std::max(0.01, (double)glm::length(nextPos));
     double signR = (r < 0.0) ? -1.0 : 1.0;
+
+    // Ring throat traversal: crossing the disk z=0 within radius rho < a flips into/out of Negative Universe
+    double rho = std::sqrt((double)(nextPos.x * nextPos.x + nextPos.y * nextPos.y));
+    bool crossedEquator = (pos.z * nextPos.z <= 0.0f) && (std::abs(pos.z - nextPos.z) > 1e-5f);
+    if (crossedEquator && rho < bh.a) {
+        signR = -signR;
+        whiteoutTimer = 0.35f;
+        std::printf("[kerr] Traversed ring singularity throat (rho=%.2f < a=%.2f). Transitioned to %s Universe!\n",
+                    rho, bh.a, (signR < 0.0) ? "NEGATIVE" : "POSITIVE");
+    }
+
     double newR = signR * newDist;
 
     // REAL PHYSICS CONSTRAINT: Event horizon point of no return!
@@ -88,16 +99,18 @@ void Camera::applyInput(float fwd, float side, float updown, float rollInput, do
         }
     }
 
+    // Radial velocity update: manual thruster damping on dr to avoid spring-back fighting
+    double radialThrust = (newR - r) / dt;
+    if (r > rOut || r < 0.0) {
+        dr = dr * 0.3 + radialThrust * 0.7;
+    } else {
+        dr = std::min(dr, -0.15); // strictly inward inside horizon
+    }
+
     r = newR;
     theta = std::acos(std::clamp((double)nextPos.z / newDist, -1.0, 1.0));
     theta = std::clamp(theta, 0.01, kPi - 0.01);
     phi = std::atan2((double)nextPos.y, (double)nextPos.x);
-
-    // Update coordinate velocities for continuity
-    dr = (fwd > 0.0f) ? (-0.2 * fwd) : (fwd < 0.0f ? 0.2 * -fwd : dr);
-    if (r > 0.0 && r <= rOut) {
-        dr = std::min(dr, -0.15); // strictly inward inside horizon
-    }
 }
 
 void Camera::toggleAutoOrbit() {
@@ -309,22 +322,39 @@ void Camera::step(double dt) {
 }
 
 glm::mat4 Camera::zamoTetrad() const {
-    glm::vec3 fwd = glm::normalize(lookDir);
-    glm::vec3 up0(0, 1, 0);
-    glm::vec3 right = glm::normalize(glm::cross(fwd, up0));
-    glm::vec3 up    = glm::normalize(glm::cross(right, fwd));
+    double curR = std::abs(r);
+    double sTh = std::sin(theta);
+    double cTh = std::cos(theta);
+    glm::vec3 pos(
+        (float)(curR * sTh * std::cos(phi)),
+        (float)(curR * sTh * std::sin(phi)),
+        (float)(curR * cTh)
+    );
+
+    glm::vec3 centerFwd = (glm::length(pos) > 1e-4f) ? -glm::normalize(pos) : glm::vec3(0, 0, -1);
+    glm::vec3 worldK(0.0f, 0.0f, 1.0f);
+    glm::vec3 centerRight = glm::cross(centerFwd, worldK);
+    if (glm::length(centerRight) < 1e-4f) centerRight = glm::vec3(1.0f, 0.0f, 0.0f);
+    centerRight = glm::normalize(centerRight);
+    glm::vec3 centerUp = glm::cross(centerRight, centerFwd);
+
+    glm::vec3 worldFwd = glm::normalize(lookDir.x * centerRight + lookDir.y * centerUp - lookDir.z * centerFwd);
+    glm::vec3 worldRight = glm::cross(worldFwd, worldK);
+    if (glm::length(worldRight) < 1e-4f) worldRight = centerRight;
+    worldRight = glm::normalize(worldRight);
+    glm::vec3 worldUp = glm::normalize(glm::cross(worldRight, worldFwd));
 
     if (std::abs(roll) > 1e-4f) {
         float cr = std::cos(roll);
         float sr = std::sin(roll);
-        glm::vec3 r2 = right * cr + up * sr;
-        glm::vec3 u2 = -right * sr + up * cr;
-        right = r2;
-        up = u2;
+        glm::vec3 r2 = worldRight * cr + worldUp * sr;
+        glm::vec3 u2 = -worldRight * sr + worldUp * cr;
+        worldRight = r2;
+        worldUp = u2;
     }
 
-    return glm::mat4(glm::vec4(right, 0), glm::vec4(up, 0),
-                     glm::vec4(-fwd, 0),  glm::vec4(0, 0, 0, 1));
+    return glm::mat4(glm::vec4(worldRight, 0), glm::vec4(worldUp, 0),
+                     glm::vec4(-worldFwd, 0),  glm::vec4(0, 0, 0, 1));
 }
 
 } // namespace kerr

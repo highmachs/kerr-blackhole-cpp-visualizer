@@ -14,6 +14,8 @@ void Camera::reset() {
     dr = -0.15; dtheta = 0.0; dphi = 0.0;
     E = 1.0; L = 2.0; Q = 0.0;
     yaw = 0; pitch = 0; roll = 0.0f;
+    yawTarget = pitchTarget = rollTarget = 0.0f;
+    fov = fovTarget = 60.0f;
     velocity = glm::vec3(0.0f);
     thrustMultiplier = 1.0f;
     isAutoOrbit = false;
@@ -32,10 +34,10 @@ void Camera::applyInput(float fwd, float side, float updown, float rollInput, do
         isTouring = false;
     }
 
-    // Roll angle adjustment (Z/C)
-    roll += rollInput * 1.5f * (float)dt;
-    while (roll > (float)kPi) roll -= (float)(2.0 * kPi);
-    while (roll < -(float)kPi) roll += (float)(2.0 * kPi);
+    // Roll angle adjustment (Z/C) with smooth damping
+    rollTarget += rollInput * 1.5f * (float)dt;
+    while (rollTarget > (float)kPi)  { rollTarget -= (float)(2.0 * kPi); roll -= (float)(2.0 * kPi); }
+    while (rollTarget < -(float)kPi) { rollTarget += (float)(2.0 * kPi); roll += (float)(2.0 * kPi); }
 
     // 1. Current Cartesian position
     double curR = std::abs(r);
@@ -127,11 +129,9 @@ void Camera::toggleTour() {
 }
 
 void Camera::applyMouse(float dx, float dy) {
-    yaw   += dx * 0.0025f;
-    pitch += dy * 0.0025f;
-    pitch  = std::clamp(pitch, -1.5533f, 1.5533f);
-    float cp = std::cos(pitch);
-    lookDir = glm::vec3(std::sin(yaw) * cp, std::sin(pitch), -std::cos(yaw) * cp);
+    yawTarget   += dx * 0.0022f;
+    pitchTarget += dy * 0.0022f;
+    pitchTarget  = std::clamp(pitchTarget, -1.5533f, 1.5533f);
 }
 
 // Exact radial acceleration derived from Carter's geodesic equations:
@@ -236,15 +236,15 @@ void Camera::step(double dt) {
         if (tourTime >= 24.0f) {
             float uTurn = std::clamp((tourTime - 24.0f) / 6.0f, 0.0f, 1.0f);
             float s = uTurn * uTurn * uTurn * (uTurn * (uTurn * 6.0f - 15.0f) + 10.0f);
-            yaw = (1.0f - s) * (float)kPi;
-            pitch = 0.0f;
-            roll = 0.0f;
+            yawTarget = yaw = (1.0f - s) * (float)kPi;
+            pitchTarget = pitch = 0.0f;
+            rollTarget = roll = 0.0f;
             float cp = std::cos(pitch);
             lookDir = glm::vec3(std::sin(yaw) * cp, std::sin(pitch), -std::cos(yaw) * cp);
         } else {
-            yaw = (float)kPi;
-            pitch = 0.0f;
-            roll = 0.0f;
+            yawTarget = yaw = (float)kPi;
+            pitchTarget = pitch = 0.0f;
+            rollTarget = roll = 0.0f;
             lookDir = glm::vec3(0, 0, 1);
         }
 
@@ -260,6 +260,14 @@ void Camera::step(double dt) {
         if (trail.size() > 512) trail.pop_front();
         return;
     }
+
+    // Framerate-independent sub-frame exponential smoothing on look direction and roll
+    float lookAlpha = 1.0f - std::exp(-28.0f * (float)dt);
+    yaw   = glm::mix(yaw,   yawTarget,   lookAlpha);
+    pitch = glm::mix(pitch, pitchTarget, lookAlpha);
+    roll  = glm::mix(roll,  rollTarget,  lookAlpha);
+    float cp = std::cos(pitch);
+    lookDir = glm::vec3(std::sin(yaw) * cp, std::sin(pitch), -std::cos(yaw) * cp);
 
     if (isAutoOrbit && r > (rOuterHorizon(bh) + 0.15)) {
         dr = dr * std::max(0.0, 1.0 - 4.0 * dt);

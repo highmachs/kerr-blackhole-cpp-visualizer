@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <chrono>
 #include <string>
+#include <thread>
 
 // Windows high-performance GPU exports (forces RTX 4060 on dual-GPU laptops)
 #if defined(_WIN32)
@@ -61,6 +62,9 @@ namespace
         int resPreset = 2; // Default 1080p balanced
         float renderScale = 1.0f; // 0.25x to 2.0x
         bool autoGpuRecovery = true;
+        bool dynamicResolution = false; // Adaptive render resolution with hysteresis
+        float dynResCooldown = 0.0f;
+        int targetFps = 0; // 0 = Uncapped, 60, 120, 144, 165, 240
         float frameMsSmoothed = 16.6f;
         float lowFpsDuration = 0.0f;
         bool gpuLagAlert = false;
@@ -84,6 +88,8 @@ namespace
         int baseH = (g_app->resPreset == 6 || kResPresets[g_app->resPreset].h <= 0) ? g_app->fbHeight : kResPresets[g_app->resPreset].h;
         int targetW = std::clamp((int)(baseW * g_app->renderScale), 320, 7680);
         int targetH = std::clamp((int)(baseH * g_app->renderScale), 180, 4320);
+        if (targetW == g_app->renderWidth && targetH == g_app->renderHeight)
+            return;
         g_app->renderWidth = targetW;
         g_app->renderHeight = targetH;
         g_app->renderer.resize(targetW, targetH);
@@ -624,11 +630,37 @@ namespace
                 ImGui::BulletText("Smooth Frame Time: %.1f ms (~%.0f FPS)", g_app->frameMsSmoothed, 1000.0f / std::max(1.0f, g_app->frameMsSmoothed));
 
                 ImGui::Separator();
-                ImGui::Checkbox("Auto-Protect on GPU Lag (<11 FPS)", &g_app->autoGpuRecovery);
+                ImGui::Text("Frame Pacing & Performance:");
+                const char *fpsLimitLabels[] = {
+                    "Uncapped (GPU Maximum)",
+                    "60 FPS  (Standard Refresh)",
+                    "120 FPS (Fluid 120Hz)",
+                    "144 FPS (Ultra Smooth 144Hz)",
+                    "165 FPS (High Refresh)",
+                    "240 FPS (Esports Fluidity)"
+                };
+                const int fpsLimitValues[] = { 0, 60, 120, 144, 165, 240 };
+                int currentFpsIdx = 0;
+                for (int i = 0; i < 6; ++i) {
+                    if (g_app->targetFps == fpsLimitValues[i]) { currentFpsIdx = i; break; }
+                }
+                if (ImGui::Combo("Framerate Cap", &currentFpsIdx, fpsLimitLabels, 6))
+                {
+                    g_app->targetFps = fpsLimitValues[currentFpsIdx];
+                }
+
                 if (ImGui::Checkbox("VSync (Limit to Monitor Hz)", &g_app->vsync))
                 {
                     glfwSwapInterval(g_app->vsync ? 1 : 0);
                 }
+
+                ImGui::Checkbox("Adaptive Dynamic Resolution", &g_app->dynamicResolution);
+                if (ImGui::IsItemHovered())
+                {
+                    ImGui::SetTooltip("Dynamically adjusts render scale with hysteresis to maintain smooth 60+ FPS without visual oscillation.");
+                }
+
+                ImGui::Checkbox("Auto-Protect on GPU Lag (<11 FPS)", &g_app->autoGpuRecovery);
 
                 ImGui::Spacing();
                 ImGui::Text("Emergency Quick Recovery:");
@@ -1024,6 +1056,27 @@ int main(int argc, char **argv)
             app.lowFpsDuration = std::max(0.0f, app.lowFpsDuration - (float)dt * 0.5f);
         }
 
+        // Adaptive Dynamic Resolution: maintains smooth frame budget with hysteresis
+        if (app.dynamicResolution && !headless)
+        {
+            app.dynResCooldown += (float)dt;
+            if (app.dynResCooldown > 0.8f)
+            {
+                if (app.frameMsSmoothed > 19.5f && app.renderScale > 0.5f)
+                {
+                    float newScale = std::max(0.5f, app.renderScale - 0.10f);
+                    applyResolutionPreset(app.resPreset, newScale);
+                    app.dynResCooldown = 0.0f;
+                }
+                else if (app.frameMsSmoothed < 13.5f && app.renderScale < 1.0f)
+                {
+                    float newScale = std::min(1.0f, app.renderScale + 0.10f);
+                    applyResolutionPreset(app.resPreset, newScale);
+                    app.dynResCooldown = 0.0f;
+                }
+            }
+        }
+
         app.renderer.render(app.camera, app.settings, (float)tsec, app.fbWidth, app.fbHeight);
 
         ImGui_ImplOpenGL3_NewFrame();
@@ -1034,6 +1087,26 @@ int main(int argc, char **argv)
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         glfwSwapBuffers(win);
+
+        // High-precision frame pacing when frame cap is enabled
+        if (app.targetFps > 0)
+        {
+            double targetSec = 1.0 / (double)app.targetFps;
+            auto frameEnd = clock::now();
+            double elapsed = std::chrono::duration<double>(frameEnd - now).count();
+            while (elapsed < targetSec - 0.001)
+            {
+                std::this_thread::yield();
+                frameEnd = clock::now();
+                elapsed = std::chrono::duration<double>(frameEnd - now).count();
+            }
+            while (elapsed < targetSec)
+            {
+                frameEnd = clock::now();
+                elapsed = std::chrono::duration<double>(frameEnd - now).count();
+            }
+        }
+
         frameCount++;
 
         if (!screenshotPath.empty() && frameCount >= targetFrames)

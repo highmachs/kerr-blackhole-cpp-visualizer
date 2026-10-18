@@ -1,16 +1,15 @@
 #version 460 core
 // ============================================================================
 // Kerr Black Hole Interior Navigator — Compute Shader (GLSL 4.60)
+// High-Performance Runge-Kutta / Verlet Null Geodesic Raytracing Pipeline
 //
-// Full General Relativity null geodesic ray tracing across all 6 phases:
-//   Phase 1: Approach (warped double arc, Novikov-Thorne disk, Doppler beaming)
-//   Phase 2: Outer Horizon (blinding accretion ring, event horizon glow)
-//   Phase 3: Between Horizons (Cauchy horizon glow, frame-dragging distortion)
-//   Phase 4: Cauchy Horizon Crossing (infinite blueshift whiteout trigger)
-//   Phase 5: Ring Singularity (thin glowing ring at z=0, rho=a in Inverted Void)
-//   Phase 6: Negative Universe (r < 0, repelling gravity, time-flipped sky)
-//
-// Strict Obsidian & Ember palette compliance (spec §4).
+// Optimized for RTX 4060 & Modern GPUs:
+//   - Precomputed invariant uniforms (u_a2, u_M2, u_rOuter, u_rInner, u_rISCO, u_rPhoton)
+//   - Direct scalar multiply chains (eliminated transcendental pow() in kerrAccel)
+//   - Zero redundant kerrR evaluations in RK2 Verlet step
+//   - Branch-divergence isolation for Negative Universe features
+//   - Conditional acos/atan evaluation (omitted when grid/photon sphere is off)
+//   - Squared-radius distance checks (eliminated per-step sqrt in length)
 // ============================================================================
 
 layout(local_size_x = 16, local_size_y = 16) in;
@@ -25,7 +24,13 @@ uniform int   u_showGrid;
 uniform int   u_diskStyle;        // 0 Classic, 1 High-Energy Sapphire, 2 Naked Lens, 3 Doppler Heatmap
 uniform int   u_showReticle;      // 0 off, 1 on
 uniform float u_a;
+uniform float u_a2;
 uniform float u_M;
+uniform float u_M2;
+uniform float u_rOuter;
+uniform float u_rInner;
+uniform float u_rISCO;
+uniform float u_rPhoton;
 uniform float u_time;
 uniform float u_diskBrightness;
 uniform float u_starBrightness;
@@ -57,48 +62,39 @@ const vec3 C_WARM_ASH           = vec3(196.0,181.0, 165.0) / 255.0; // #c4b5a5
 const float PI      = 3.14159265358979323846;
 const float HALF_PI = 1.57079632679489661923;
 
-float rOuter() { return u_M + sqrt(max(0.0, u_M*u_M - u_a*u_a)); }
-float rInner() { return u_M - sqrt(max(0.0, u_M*u_M - u_a*u_a)); }
-
-float rISCO() {
-    float a = clamp(u_a, 0.0, 0.998);
-    float Z1 = 1.0 + pow(max(1e-5, 1.0 - a*a), 1.0/3.0) * (pow(1.0 + a, 1.0/3.0) + pow(max(1e-5, 1.0 - a), 1.0/3.0));
-    float Z2 = sqrt(3.0*a*a + Z1*Z1);
-    return u_M * (3.0 + Z2 - sqrt(max(0.0, (3.0 - Z1)*(3.0 + Z1 + 2.0*Z2))));
-}
-
-float rPhoton() {
-    float a = clamp(u_a, 0.0, 0.998);
-    return 2.0 * u_M * (1.0 + cos((2.0 / 3.0) * acos(-a / u_M)));
-}
+float rOuter()  { return u_rOuter; }
+float rInner()  { return u_rInner; }
+float rISCO()   { return u_rISCO; }
+float rPhoton() { return u_rPhoton; }
 
 // Convert Cartesian position to Kerr Boyer-Lindquist radial coordinate r
 float kerrR(vec3 p, bool isNegative) {
     float rho2 = dot(p, p);
-    float a2 = u_a * u_a;
-    float D = rho2 - a2;
-    float r2 = 0.5 * (D + sqrt(max(0.0, D * D + 4.0 * a2 * p.z * p.z)));
+    float D = rho2 - u_a2;
+    float r2 = 0.5 * (D + sqrt(max(0.0, D * D + 4.0 * u_a2 * p.z * p.z)));
     float r = sqrt(max(0.0, r2));
     return isNegative ? -r : r;
 }
 
 // Kerr geodesic acceleration (lensing + frame-dragging)
+// Optimized: uses scalar products instead of pow()
 vec3 kerrAccel(vec3 p, vec3 v, float r, bool isNegative) {
     float ar = max(0.08, abs(r));
+    float ar2 = ar * ar;
+    float ar5 = ar2 * ar2 * ar;
     float rho2 = dot(p, p);
-    float a2 = u_a * u_a;
-    float sig = ar * ar + a2 * (p.z * p.z / (rho2 + 0.01)) + 0.04;
 
     vec3 Lvec = cross(p, v);
     float L2 = dot(Lvec, Lvec);
 
     // Relativistic photon deflection
     float gFactor = isNegative ? -1.0 : 1.0;
-    float aMag = gFactor * (3.0 * u_M * L2 / (pow(ar, 5.0) + 0.04));
+    float aMag = gFactor * (3.0 * u_M * L2 / (ar5 + 0.04));
     vec3 a_grav = -aMag * p;
 
     // Frame-dragging Coriolis acceleration around z-axis
-    float omega = (2.0 * u_M * u_a * ar) / (pow(ar * ar + a2, 2.0) + 0.08);
+    float denom = ar2 + u_a2;
+    float omega = (2.0 * u_M * u_a * ar) / (denom * denom + 0.08);
     vec3 wVec = vec3(0.0, 0.0, omega * gFactor);
     vec3 a_drag = 2.0 * cross(v, wVec);
 
@@ -107,7 +103,7 @@ vec3 kerrAccel(vec3 p, vec3 v, float r, bool isNegative) {
 
 // Novikov-Thorne accretion disk color profile (spec §8)
 vec3 diskColor(float r) {
-    float rIn = rISCO();
+    float rIn = u_rISCO;
     float rOut = 15.0 * u_M;
     float t = clamp((r - rIn) / (rOut - rIn + 1e-4), 0.0, 1.0);
     vec3 c;
@@ -115,7 +111,9 @@ vec3 diskColor(float r) {
     else if (t < 0.50) c = mix(C_MOLTEN_IRON,   C_COOLING_EMBER, (t - 0.18) / 0.32);
     else               c = mix(C_COOLING_EMBER, C_DRIED_CLAY,    (t - 0.50) / 0.50);
 
-    float intensity = pow(rIn / max(r, rIn), 0.75) * pow(max(0.0, 1.0 - sqrt(rIn / max(r, rIn))), 0.25) * 2.2 + 0.40;
+    float rRatio = rIn / max(r, rIn);
+    float sqrtRRatio = sqrt(rRatio);
+    float intensity = pow(rRatio, 0.75) * pow(max(0.0, 1.0 - sqrtRRatio), 0.25) * 2.2 + 0.40;
     return c * intensity;
 }
 
@@ -145,7 +143,7 @@ vec3 sampleStars(vec3 dir, int mode) {
 // Coordinate grid lines in Boyer-Lindquist coordinates (spec §10)
 vec3 coordinateGrid(float r, float th, float ph) {
     if (u_showGrid == 0) return vec3(0.0);
-    if (u_r <= rOuter()) return vec3(0.0);
+    if (u_r <= u_rOuter) return vec3(0.0);
     if (abs(r) > 28.0) return vec3(0.0);
 
     float g = 0.0;
@@ -172,8 +170,7 @@ vec3 coordinateGrid(float r, float th, float ph) {
 // Photon sphere glowing ring
 vec3 photonSphereGlow(float r, float th) {
     if (u_showPhotonSphere == 0 || u_mode != 0) return vec3(0.0);
-    float rps = rPhoton();
-    float d = abs(r - rps) + abs(th - HALF_PI) * 0.4;
+    float d = abs(r - u_rPhoton) + abs(th - HALF_PI) * 0.4;
     return C_EVENT_HORIZON_GLOW * exp(-30.0 * d) * 0.7;
 }
 
@@ -208,16 +205,13 @@ void main() {
     float transmission = 1.0;
     int steps = clamp(u_maxSteps, 30, 800);
 
-    float ro = rOuter();
-    float ri = rInner();
+    float ro = u_rOuter;
+    float ri = u_rInner;
     float r = u_r;
     float ar = abs(u_r);
 
     for (int i = 0; i < steps; ++i) {
-        r = kerrR(pos, isNegative);
-        ar = abs(r);
-
-        // Adaptive step size
+        // Adaptive step size based on radial proximity
         float h = 0.05;
         if (ar > 18.0 && dot(pos, vel) > 0.0) h = 0.60;
         else if (ar > 14.0) h = 0.35;
@@ -239,16 +233,14 @@ void main() {
         vec3 a2 = kerrAccel(nextPos, vel + a1 * h, nextR, isNegative);
         vel = normalize(vel + 0.5 * (a1 + a2) * h);
         pos = nextPos;
+        r = nextR; // Reused directly without redundant kerrR evaluation
 
         // Ring singularity passage: crossing z=0 inside ring radius a (spec §2, §7)
-        if (prevPos.z * pos.z <= 0.0 && (pos.x * pos.x + pos.y * pos.y) < (u_a * u_a)) {
+        if (prevPos.z * pos.z <= 0.0 && (pos.x * pos.x + pos.y * pos.y) < u_a2) {
             isNegative = !isNegative;
+            r = -r;
         }
-
-        r = kerrR(pos, isNegative);
         ar = abs(r);
-        float th = acos(clamp(pos.z / max(0.01, length(pos)), -1.0, 1.0));
-        float ph = atan(pos.y, pos.x);
 
         // --- 1. Accretion disk analytic plane crossing (z = 0, r in [rISCO, 15M]) ---
         if (prevPos.z * pos.z <= 0.0 && !isNegative) {
@@ -256,7 +248,7 @@ void main() {
             vec3 pDisk = mix(prevPos, pos, tCross);
             float rDisk = length(pDisk.xy);
 
-            if (rDisk >= rISCO() && rDisk <= 15.0 * u_M) {
+            if (rDisk >= u_rISCO && rDisk <= 15.0 * u_M) {
                 // Keplerian prograde plasma orbital frequency & velocity
                 float Om = sqrt(u_M) / (pow(rDisk, 1.5) + u_a * sqrt(u_M));
                 vec3 vPlasmaDir = normalize(vec3(-pDisk.y, pDisk.x, 0.0));
@@ -266,22 +258,24 @@ void main() {
                 float vOrb = clamp(Om * rDisk, 0.0, 0.85);
 
                 float gamma = 1.0 / sqrt(max(0.01, 1.0 - vOrb * vOrb));
-                float alphaGrav = sqrt(max(0.02, 1.0 - 2.0 * u_M * rDisk / (rDisk * rDisk + u_a * u_a)));
+                float alphaGrav = sqrt(max(0.02, 1.0 - 2.0 * u_M * rDisk / (rDisk * rDisk + u_a2)));
                 float g = alphaGrav / (gamma * max(0.08, 1.0 - beta * vOrb));
                 g = clamp(g, 0.20, 2.80);
 
-                // Gas density & turbulent spiral structure with authentic Keplerian shear advection
+                // Gas density & turbulent spiral structure with Keplerian shear
                 float ang = atan(pDisk.y, pDisk.x);
                 float shearAngle = ang - Om * 6.0 * u_time;
-                float spiralPattern = sin(8.0 * shearAngle + 3.0 * log(rDisk));
-                float turb = 0.84 + 0.10 * sin(24.0 * log(rDisk)) + 0.06 * spiralPattern;
+                float logR = log(rDisk);
+                float spiralPattern = sin(8.0 * shearAngle + 3.0 * logR);
+                float turb = 0.84 + 0.10 * sin(24.0 * logR) + 0.06 * spiralPattern;
+
                 // Accretion disk style options:
                 // 2 = Naked Lens mode (skip disk completely to view pure gravitational lens)
                 if (u_diskStyle != 2) {
                     vec3 radiated;
                     if (u_diskStyle == 1) {
                         // High-Energy Electric Sapphire / Violet Plasma
-                        vec3 plasmaCol = mix(vec3(0.15, 0.65, 1.00), vec3(0.58, 0.22, 0.95), clamp((rDisk - rISCO()) / (10.0 * u_M), 0.0, 1.0));
+                        vec3 plasmaCol = mix(vec3(0.15, 0.65, 1.00), vec3(0.58, 0.22, 0.95), clamp((rDisk - u_rISCO) / (10.0 * u_M), 0.0, 1.0));
                         radiated = applyDoppler(plasmaCol, g) * turb * u_diskBrightness;
                     } else if (u_diskStyle == 3) {
                         // Doppler Energy Heatmap:
@@ -300,7 +294,7 @@ void main() {
                     }
 
                     // Semi-transparent gas layer creates iconic warped double arcs
-                    float tau = 2.0 * exp(-0.15 * (rDisk - rISCO()));
+                    float tau = 2.0 * exp(-0.15 * (rDisk - u_rISCO));
                     float alpha = clamp(1.0 - exp(-tau), 0.50, 0.88);
 
                     accum += radiated * alpha * transmission;
@@ -313,8 +307,10 @@ void main() {
             }
         }
 
+        float posSq = dot(pos, pos);
+
         // --- 2. Escaped to infinity (normal universe) ---
-        if (length(pos) > 24.0 * u_M && !isNegative && dot(pos, vel) > 0.0) {
+        if (posSq > 576.0 * u_M2 && !isNegative && dot(pos, vel) > 0.0) {
             vec3 dir = normalize(vel);
             vec3 col = sampleStars(dir, u_mode);
             float vcam = clamp(abs(u_dr) * 0.4, 0.0, 0.7);
@@ -325,7 +321,7 @@ void main() {
         }
 
         // --- 3. Escaped to negative universe celestial sphere ---
-        if (length(pos) > 20.0 * u_M && isNegative && dot(pos, vel) > 0.0) {
+        if (posSq > 400.0 * u_M2 && isNegative && dot(pos, vel) > 0.0) {
             vec3 dir = normalize(vel);
             vec3 col = sampleStars(dir, 3);
             accum += col * transmission;
@@ -333,57 +329,54 @@ void main() {
             break;
         }
 
-        // --- 4. White Hole Expulsion Halo, Polar Jets & Ring Singularity ---
+        // --- 4. Relativistic Structures & Singularity ---
         float rho = length(pos.xy);
 
-        // A. Relativistic Polar Expulsion Jets (collimated along rotational axis)
-        if (isNegative && rho < 0.60 * u_a && abs(pos.z) < 6.0) {
-            float jetCore = exp(-14.0 * rho / u_a);
-            float jetZFalloff = exp(-0.6 * abs(pos.z)) * smoothstep(6.0, 2.5, abs(pos.z));
-            float jetPulse = 0.85 + 0.15 * sin(12.0 * abs(pos.z) - 6.0 * u_time);
-            vec3 jetCol = mix(vec3(0.20, 0.85, 1.00), vec3(1.0, 1.0, 1.0), jetCore);
-            accum += jetCol * (jetCore * 2.4 * jetZFalloff * jetPulse) * 0.10 * transmission;
-        }
-
-        // B. Central Throat Aperture: Radiant White Hole core emitting brilliant light into Negative Universe
-        if (abs(pos.z) < 0.50 && rho < u_a * 1.35) {
-            float uThroat = clamp(rho / max(0.01, u_a), 0.0, 1.30);
-            // Incandescent celestial white core -> electric cyan expulsion halo -> violet edge
-            vec3 whiteHoleCol = mix(vec3(1.0, 1.0, 1.0), vec3(0.25, 0.90, 1.00), smoothstep(0.0, 0.55, uThroat));
-            whiteHoleCol = mix(whiteHoleCol, vec3(0.75, 0.35, 1.00), smoothstep(0.55, 1.05, uThroat));
-
-            float zFalloff = exp(-8.0 * abs(pos.z));
-            float shimmer = 0.82 + 0.18 * sin(18.0 * rho - 4.5 * u_time);
-            float haloGain = (isNegative ? 5.8 : 2.5) * zFalloff * shimmer;
-            accum += whiteHoleCol * haloGain * 0.22 * transmission;
-        }
-
-        // C. Radiant Expulsion Disk / Relativistic Photon Ring in Negative Universe (rho in [0.7a, 4.5a])
-        if (isNegative && abs(pos.z) < 0.50 && rho >= u_a * 0.7 && rho <= u_a * 4.5) {
-            float zSmooth = smoothstep(0.50, 0.0, abs(pos.z));
-            float rhoSmooth = smoothstep(0.7 * u_a, 1.1 * u_a, rho) * smoothstep(4.5 * u_a, 2.0 * u_a, rho);
-            float rRel = (rho - u_a) / (3.5 * u_a);
-            float diskFalloff = exp(-8.0 * abs(pos.z)) * exp(-1.5 * rRel) * zSmooth * rhoSmooth;
-            float ripples = 0.82 + 0.18 * sin(14.0 * rho - 3.0 * ph + 3.5 * u_time);
-            vec3 expCol = mix(vec3(0.30, 0.88, 1.00), vec3(0.12, 0.40, 0.95), clamp(rRel, 0.0, 1.0));
-            accum += expCol * (diskFalloff * ripples * 2.8) * 0.12 * transmission;
-        }
-
-        // D. Ring Singularity Filament at rho = a
-        float dRing = abs(rho - u_a) + abs(pos.z) * 1.5;
-        if (dRing < 0.25) {
-            vec3 ringCol = isNegative ? (vec3(1.0, 1.0, 1.0) * 4.5 + vec3(0.35, 0.90, 1.00) * 3.0)
-                                      : (C_PLASMA_CORE * 2.8 + C_EVENT_HORIZON_GLOW * 1.8);
-            accum += ringCol * exp(-15.0 * dRing) * transmission;
-            if (dRing < 0.02) {
-                transmission = 0.0;
-                break;
+        if (isNegative) {
+            // A. Relativistic Polar Expulsion Jets (Negative Universe only)
+            if (rho < 0.60 * u_a && abs(pos.z) < 6.0) {
+                float jetCore = exp(-14.0 * rho / u_a);
+                float jetZFalloff = exp(-0.6 * abs(pos.z)) * smoothstep(6.0, 2.5, abs(pos.z));
+                float jetPulse = 0.85 + 0.15 * sin(12.0 * abs(pos.z) - 6.0 * u_time);
+                vec3 jetCol = mix(vec3(0.20, 0.85, 1.00), vec3(1.0, 1.0, 1.0), jetCore);
+                accum += jetCol * (jetCore * 2.4 * jetZFalloff * jetPulse) * 0.10 * transmission;
             }
-        }
 
-        // --- 5. Horizons and interior glowing structures ---
-        if (!isNegative) {
-            // Photon ring glow at outer horizon boundary
+            // B. Central Throat Aperture in Negative Universe
+            if (abs(pos.z) < 0.50 && rho < u_a * 1.35) {
+                float uThroat = clamp(rho / max(0.01, u_a), 0.0, 1.30);
+                vec3 whiteHoleCol = mix(vec3(1.0, 1.0, 1.0), vec3(0.25, 0.90, 1.00), smoothstep(0.0, 0.55, uThroat));
+                whiteHoleCol = mix(whiteHoleCol, vec3(0.75, 0.35, 1.00), smoothstep(0.55, 1.05, uThroat));
+                float zFalloff = exp(-8.0 * abs(pos.z));
+                float shimmer = 0.82 + 0.18 * sin(18.0 * rho - 4.5 * u_time);
+                float haloGain = 5.8 * zFalloff * shimmer;
+                accum += whiteHoleCol * haloGain * 0.22 * transmission;
+            }
+
+            // C. Radiant Expulsion Disk / Relativistic Photon Ring in Negative Universe
+            if (abs(pos.z) < 0.50 && rho >= u_a * 0.7 && rho <= u_a * 4.5) {
+                float zSmooth = smoothstep(0.50, 0.0, abs(pos.z));
+                float rhoSmooth = smoothstep(0.7 * u_a, 1.1 * u_a, rho) * smoothstep(4.5 * u_a, 2.0 * u_a, rho);
+                float rRel = (rho - u_a) / (3.5 * u_a);
+                float diskFalloff = exp(-8.0 * abs(pos.z)) * exp(-1.5 * rRel) * zSmooth * rhoSmooth;
+                float phNeg = atan(pos.y, pos.x);
+                float ripples = 0.82 + 0.18 * sin(14.0 * rho - 3.0 * phNeg + 3.5 * u_time);
+                vec3 expCol = mix(vec3(0.30, 0.88, 1.00), vec3(0.12, 0.40, 0.95), clamp(rRel, 0.0, 1.0));
+                accum += expCol * (diskFalloff * ripples * 2.8) * 0.12 * transmission;
+            }
+        } else {
+            // Central Throat Aperture in Positive Universe
+            if (abs(pos.z) < 0.50 && rho < u_a * 1.35) {
+                float uThroat = clamp(rho / max(0.01, u_a), 0.0, 1.30);
+                vec3 whiteHoleCol = mix(vec3(1.0, 1.0, 1.0), vec3(0.25, 0.90, 1.00), smoothstep(0.0, 0.55, uThroat));
+                whiteHoleCol = mix(whiteHoleCol, vec3(0.75, 0.35, 1.00), smoothstep(0.55, 1.05, uThroat));
+                float zFalloff = exp(-8.0 * abs(pos.z));
+                float shimmer = 0.82 + 0.18 * sin(18.0 * rho - 4.5 * u_time);
+                float haloGain = 2.5 * zFalloff * shimmer;
+                accum += whiteHoleCol * haloGain * 0.22 * transmission;
+            }
+
+            // --- 5. Horizons and interior glowing structures ---
             float dOuter = abs(ar - ro);
             accum += C_EVENT_HORIZON_GLOW * exp(-30.0 * dOuter) * 0.08 * transmission;
 
@@ -401,9 +394,25 @@ void main() {
             }
         }
 
-        // --- 6. Coordinate grid & photon sphere overlays ---
-        accum += photonSphereGlow(ar, th) * 0.035 * transmission;
-        accum += coordinateGrid(ar, th, ph) * 0.045 * transmission;
+        // D. Ring Singularity Filament at rho = a
+        float dRing = abs(rho - u_a) + abs(pos.z) * 1.5;
+        if (dRing < 0.25) {
+            vec3 ringCol = isNegative ? (vec3(1.0, 1.0, 1.0) * 4.5 + vec3(0.35, 0.90, 1.00) * 3.0)
+                                      : (C_PLASMA_CORE * 2.8 + C_EVENT_HORIZON_GLOW * 1.8);
+            accum += ringCol * exp(-15.0 * dRing) * transmission;
+            if (dRing < 0.02) {
+                transmission = 0.0;
+                break;
+            }
+        }
+
+        // --- 6. Coordinate grid & photon sphere overlays (evaluated only when enabled) ---
+        if (u_showGrid != 0 || u_showPhotonSphere != 0) {
+            float th = acos(clamp(pos.z / max(0.01, sqrt(posSq)), -1.0, 1.0));
+            float ph = atan(pos.y, pos.x);
+            accum += photonSphereGlow(ar, th) * 0.035 * transmission;
+            accum += coordinateGrid(ar, th, ph) * 0.045 * transmission;
+        }
     }
 
     if (transmission > 0.0) {
@@ -420,7 +429,6 @@ void main() {
 
     // Atmospheric/universe mode tint (spec §4)
     if (u_mode == 3) {
-        // Subtle void blend that preserves the luminous White Hole gateway
         accum = mix(accum, C_INVERTED_VOID, 0.15);
     } else if (u_mode == 2) {
         accum *= vec3(1.10, 0.95, 0.85);

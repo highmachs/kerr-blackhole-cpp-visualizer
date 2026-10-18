@@ -20,6 +20,45 @@ namespace kerr
         bool showReticle = true; // Sci-fi cockpit reticle / crosshair overlay
     };
 
+    struct ComputeUniforms
+    {
+        GLint u_width = -1;
+        GLint u_height = -1;
+        GLint u_maxSteps = -1;
+        GLint u_mode = -1;
+        GLint u_showPhotonSphere = -1;
+        GLint u_showGrid = -1;
+        GLint u_diskStyle = -1;
+        GLint u_showReticle = -1;
+        GLint u_a = -1;
+        GLint u_a2 = -1;
+        GLint u_M = -1;
+        GLint u_M2 = -1;
+        GLint u_rOuter = -1;
+        GLint u_rInner = -1;
+        GLint u_rISCO = -1;
+        GLint u_rPhoton = -1;
+        GLint u_time = -1;
+        GLint u_diskBrightness = -1;
+        GLint u_starBrightness = -1;
+        GLint u_starfieldIsFile = -1;
+        GLint u_r = -1;
+        GLint u_theta = -1;
+        GLint u_phi = -1;
+        GLint u_dr = -1;
+        GLint u_dphi = -1;
+        GLint u_camBasis = -1;
+        GLint u_starfield = -1;
+    };
+
+    struct DisplayUniforms
+    {
+        GLint u_image = -1;
+        GLint u_bloom = -1;
+        GLint u_whiteout = -1;
+        GLint u_res = -1;
+    };
+
     class Renderer
     {
     public:
@@ -35,6 +74,7 @@ namespace kerr
         int lastSteps() const { return lastSteps_; }
 
     private:
+        void cacheUniforms();
         void drawTrail(const Camera &cam, int displayWidth = 0, int displayHeight = 0);
 
         int W_ = 0, H_ = 0;
@@ -48,6 +88,9 @@ namespace kerr
         GLuint trailVbo_ = 0;
         int lastSteps_ = 0;
         bool starfieldIsFile_ = false;
+
+        ComputeUniforms computeUni_{};
+        DisplayUniforms displayUni_{};
     };
 
 } // namespace kerr

@@ -56,6 +56,8 @@ namespace kerr
         if (!computeProg_ || !displayProg_ || !trailProg_)
             return false;
 
+        cacheUniforms();
+
         glGenVertexArrays(1, &trailVao_);
         glGenBuffers(1, &trailVbo_);
         glBindVertexArray(trailVao_);
@@ -207,46 +209,92 @@ namespace kerr
         return true;
     }
 
+    void Renderer::cacheUniforms()
+    {
+        auto gloc = [](GLuint prog, const char *name) -> GLint {
+            return glGetUniformLocation(prog, name);
+        };
+
+        computeUni_.u_width = gloc(computeProg_, "u_width");
+        computeUni_.u_height = gloc(computeProg_, "u_height");
+        computeUni_.u_maxSteps = gloc(computeProg_, "u_maxSteps");
+        computeUni_.u_mode = gloc(computeProg_, "u_mode");
+        computeUni_.u_showPhotonSphere = gloc(computeProg_, "u_showPhotonSphere");
+        computeUni_.u_showGrid = gloc(computeProg_, "u_showGrid");
+        computeUni_.u_diskStyle = gloc(computeProg_, "u_diskStyle");
+        computeUni_.u_showReticle = gloc(computeProg_, "u_showReticle");
+        computeUni_.u_a = gloc(computeProg_, "u_a");
+        computeUni_.u_a2 = gloc(computeProg_, "u_a2");
+        computeUni_.u_M = gloc(computeProg_, "u_M");
+        computeUni_.u_M2 = gloc(computeProg_, "u_M2");
+        computeUni_.u_rOuter = gloc(computeProg_, "u_rOuter");
+        computeUni_.u_rInner = gloc(computeProg_, "u_rInner");
+        computeUni_.u_rISCO = gloc(computeProg_, "u_rISCO");
+        computeUni_.u_rPhoton = gloc(computeProg_, "u_rPhoton");
+        computeUni_.u_time = gloc(computeProg_, "u_time");
+        computeUni_.u_diskBrightness = gloc(computeProg_, "u_diskBrightness");
+        computeUni_.u_starBrightness = gloc(computeProg_, "u_starBrightness");
+        computeUni_.u_starfieldIsFile = gloc(computeProg_, "u_starfieldIsFile");
+        computeUni_.u_r = gloc(computeProg_, "u_r");
+        computeUni_.u_theta = gloc(computeProg_, "u_theta");
+        computeUni_.u_phi = gloc(computeProg_, "u_phi");
+        computeUni_.u_dr = gloc(computeProg_, "u_dr");
+        computeUni_.u_dphi = gloc(computeProg_, "u_dphi");
+        computeUni_.u_camBasis = gloc(computeProg_, "u_camBasis");
+        computeUni_.u_starfield = gloc(computeProg_, "u_starfield");
+
+        displayUni_.u_image = gloc(displayProg_, "u_image");
+        displayUni_.u_bloom = gloc(displayProg_, "u_bloom");
+        displayUni_.u_whiteout = gloc(displayProg_, "u_whiteout");
+        displayUni_.u_res = gloc(displayProg_, "u_res");
+    }
+
     void Renderer::render(const Camera &cam, const RenderSettings &s, float timeSec, int displayWidth, int displayHeight)
     {
         // 1. Compute pass.
         glUseProgram(computeProg_);
         glBindImageTexture(0, image_, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 
-        auto uf = [&](const char *n, float v)
-        { glUniform1f(glGetUniformLocation(computeProg_, n), v); };
-        auto ui = [&](const char *n, int v)
-        { glUniform1i(glGetUniformLocation(computeProg_, n), v); };
-        auto um = [&](const char *n, const glm::mat4 &m)
-        {
-            glUniformMatrix4fv(glGetUniformLocation(computeProg_, n), 1, GL_FALSE, &m[0][0]);
-        };
+        float a = (float)cam.bh.a;
+        float M = (float)cam.bh.M;
+        float rOut = (float)kerr::rOuterHorizon(cam.bh);
+        float rIn  = (float)kerr::rInnerHorizon(cam.bh);
+        float rIsco = (float)kerr::rISCO(cam.bh);
+        float rPhot = (float)kerr::rPhotonSphere(cam.bh);
 
-        ui("u_width", W_);
-        ui("u_height", H_);
-        ui("u_maxSteps", s.maxSteps);
-        ui("u_mode", (int)cam.mode);
-        ui("u_showPhotonSphere", s.showPhotonSphere ? 1 : 0);
-        ui("u_showGrid", s.showGrid ? 1 : 0);
-        ui("u_diskStyle", s.diskStyle);
-        ui("u_showReticle", s.showReticle ? 1 : 0);
-        uf("u_a", (float)cam.bh.a);
-        uf("u_M", (float)cam.bh.M);
-        uf("u_time", timeSec);
-        uf("u_diskBrightness", s.diskBrightness);
-        uf("u_starBrightness", s.starBrightness);
-        uf("u_starfieldIsFile", starfieldIsFile_ ? 1.0f : 0.0f);
+        glUniform1i(computeUni_.u_width, W_);
+        glUniform1i(computeUni_.u_height, H_);
+        glUniform1i(computeUni_.u_maxSteps, s.maxSteps);
+        glUniform1i(computeUni_.u_mode, (int)cam.mode);
+        glUniform1i(computeUni_.u_showPhotonSphere, s.showPhotonSphere ? 1 : 0);
+        glUniform1i(computeUni_.u_showGrid, s.showGrid ? 1 : 0);
+        glUniform1i(computeUni_.u_diskStyle, s.diskStyle);
+        glUniform1i(computeUni_.u_showReticle, s.showReticle ? 1 : 0);
+        glUniform1f(computeUni_.u_a, a);
+        glUniform1f(computeUni_.u_a2, a * a);
+        glUniform1f(computeUni_.u_M, M);
+        glUniform1f(computeUni_.u_M2, M * M);
+        glUniform1f(computeUni_.u_rOuter, rOut);
+        glUniform1f(computeUni_.u_rInner, rIn);
+        glUniform1f(computeUni_.u_rISCO, rIsco);
+        glUniform1f(computeUni_.u_rPhoton, rPhot);
+        glUniform1f(computeUni_.u_time, timeSec);
+        glUniform1f(computeUni_.u_diskBrightness, s.diskBrightness);
+        glUniform1f(computeUni_.u_starBrightness, s.starBrightness);
+        glUniform1f(computeUni_.u_starfieldIsFile, starfieldIsFile_ ? 1.0f : 0.0f);
 
-        uf("u_r", (float)cam.r);
-        uf("u_theta", (float)cam.theta);
-        uf("u_phi", (float)cam.phi);
-        uf("u_dr", (float)cam.dr);
-        uf("u_dphi", (float)cam.dphi);
-        um("u_camBasis", cam.zamoTetrad());
+        glUniform1f(computeUni_.u_r, (float)cam.r);
+        glUniform1f(computeUni_.u_theta, (float)cam.theta);
+        glUniform1f(computeUni_.u_phi, (float)cam.phi);
+        glUniform1f(computeUni_.u_dr, (float)cam.dr);
+        glUniform1f(computeUni_.u_dphi, (float)cam.dphi);
+
+        glm::mat4 tetrad = cam.zamoTetrad();
+        glUniformMatrix4fv(computeUni_.u_camBasis, 1, GL_FALSE, &tetrad[0][0]);
 
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, starfield_);
-        ui("u_starfield", 1);
+        glUniform1i(computeUni_.u_starfield, 1);
 
         // Workgroup is 16x16 (matches compute.glsl).
         GLuint gx = (GLuint)((W_ + 15) / 16);
@@ -267,10 +315,10 @@ namespace kerr
         glUseProgram(displayProg_);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, image_);
-        glUniform1i(glGetUniformLocation(displayProg_, "u_image"), 0);
-        glUniform1f(glGetUniformLocation(displayProg_, "u_bloom"), s.bloomIntensity);
-        glUniform1f(glGetUniformLocation(displayProg_, "u_whiteout"), cam.whiteoutTimer);
-        glUniform2f(glGetUniformLocation(displayProg_, "u_res"), (float)dispW, (float)dispH);
+        glUniform1i(displayUni_.u_image, 0);
+        glUniform1f(displayUni_.u_bloom, s.bloomIntensity);
+        glUniform1f(displayUni_.u_whiteout, cam.whiteoutTimer);
+        glUniform2f(displayUni_.u_res, (float)dispW, (float)dispH);
 
         glBindVertexArray(vao_);
         glDrawArrays(GL_TRIANGLES, 0, 3);

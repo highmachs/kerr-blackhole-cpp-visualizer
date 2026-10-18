@@ -30,11 +30,16 @@ struct Camera {
     double L = 2.0;   // axial angular momentum
     double Q = 0.0;   // Carter constant
 
-    // Mouse-driven look direction in the local ZAMO tetrad.
+    // Mouse-driven look direction in the local ZAMO tetrad with sub-frame exponential smoothing
     glm::vec3 lookDir = glm::vec3(0, 0, -1);
     float yaw   = 0.0f;
     float pitch = 0.0f;
     float roll  = 0.0f; // 6-DOF camera roll in radians
+    float yawTarget   = 0.0f;
+    float pitchTarget = 0.0f;
+    float rollTarget  = 0.0f;
+    float fov         = 60.0f; // degrees FOV
+    float fovTarget   = 60.0f;
 
     // Flight dynamics & simulation modes
     glm::vec3 velocity = glm::vec3(0.0f); // Smoothed flight velocity for inertia damping

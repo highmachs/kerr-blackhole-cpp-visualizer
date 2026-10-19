@@ -18,6 +18,7 @@ dist/
 *.png
 !assets/starfield.png
 !assets/preview.png
+!assets/showcase/*.png
 
 # CMake / generated files
 CMakeFiles/

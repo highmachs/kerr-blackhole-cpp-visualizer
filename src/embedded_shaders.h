@@ -202,7 +202,8 @@ void main() {
     vec3 camRay = normalize(vec3(uv.x, uv.y, -1.0));
     // Transform directly to world coordinates using camera basis
     vec3 rayDir = normalize((u_camBasis * vec4(camRay, 0.0)).xyz);
-
+)SHADER_SRC"
+R"SHADER_SRC(
     vec3 pos = camPos;
     vec3 vel = rayDir;
     bool isNegative = (u_r < 0.0);

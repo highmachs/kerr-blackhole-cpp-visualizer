@@ -44,3 +44,4 @@ Makefile
 # AI Agent Local Configuration
 .agent/
 .agents/
+scratch/

@@ -9,7 +9,7 @@ An interactive, scientifically rigorous real-time Kerr black hole and Negative U
 Runs **100% natively on your GPU** with multi-threaded performance, zero browser overhead, and sustained 60–400+ FPS.
 
 <div align="center">
-  <img src="assets/preview.png" alt="Kerr Black Hole Interior Navigator - Vista with Accretion Disk, Event Horizon & Cockpit HUD" width="100%">
+  <img src="assets/kerr_banner_animated.svg" alt="Kerr Black Hole Interior Navigator - Animated Relativistic Accretion Disk & Ergosphere Glow" width="100%">
 </div>
 
 > [!IMPORTANT]
@@ -17,6 +17,15 @@ Runs **100% natively on your GPU** with multi-threaded performance, zero browser
 > For full details on spacecraft operation, flight controls, and mathematical derivations, please read:
 > - **[USER_MANUAL.md](USER_MANUAL.md)** — Complete 6-DOF flight controls manual, keybind reference, cockpit HUD guide, and telemetry handbook.
 > - **[kerrblackhole.md](kerrblackhole.md)** — Exhaustive mathematical derivations, Kerr metric geodesic equations, Novikov-Thorne accretion disk physics, and White Hole expulsion dynamics.
+
+---
+
+## 🎥 Real-Time Raymarching Simulation Demo
+
+<div align="center">
+  <img src="assets/kerr_demo.webp" alt="Real-Time Kerr Black Hole Geodesic Raymarching Demo" width="100%" style="border-radius: 8px;">
+  <p><em>Real-time GPU raymarching: orbital sweep, relativistic Doppler beaming, and dual Einstein gravitational lensing rings.</em></p>
+</div>
 
 ---
 

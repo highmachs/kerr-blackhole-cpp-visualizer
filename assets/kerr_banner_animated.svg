@@ -1,0 +1,187 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 500" width="100%" height="100%" style="background:#03050d; overflow:hidden; border-radius:12px; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <defs>
+    <!-- Radial Gradients -->
+    <radialGradient id="deepSpace" cx="50%" cy="50%" r="75%">
+      <stop offset="0%" stop-color="#0a1226"/>
+      <stop offset="45%" stop-color="#050814"/>
+      <stop offset="100%" stop-color="#020308"/>
+    </radialGradient>
+    <radialGradient id="shadowCore" cx="50%" cy="50%" r="50%">
+      <stop offset="85%" stop-color="#000000"/>
+      <stop offset="96%" stop-color="#01030a"/>
+      <stop offset="100%" stop-color="rgba(0, 229, 255, 0)"/>
+    </radialGradient>
+    <radialGradient id="ergoGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="60%" stop-color="rgba(0, 229, 255, 0)"/>
+      <stop offset="80%" stop-color="rgba(0, 210, 255, 0.25)"/>
+      <stop offset="92%" stop-color="rgba(0, 229, 255, 0.6)"/>
+      <stop offset="100%" stop-color="rgba(0, 229, 255, 0)"/>
+    </radialGradient>
+    <radialGradient id="diskBeaming" cx="35%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="rgba(255, 235, 170, 0.95)"/>
+      <stop offset="25%" stop-color="rgba(0, 229, 255, 0.85)"/>
+      <stop offset="60%" stop-color="rgba(255, 110, 30, 0.5)"/>
+      <stop offset="100%" stop-color="rgba(180, 20, 0, 0)"/>
+    </radialGradient>
+    <linearGradient id="einsteinRing" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00e5ff" stop-opacity="0.9"/>
+      <stop offset="40%" stop-color="#ffb347" stop-opacity="0.8"/>
+      <stop offset="70%" stop-color="#ff4500" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#00e5ff" stop-opacity="0.1"/>
+    </linearGradient>
+
+    <!-- Filters for Bloom Glow -->
+    <filter id="bloom" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="strongBloom" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="16" result="blur2"/>
+      <feGaussianBlur stdDeviation="6" result="blur1"/>
+      <feMerge>
+        <feMergeNode in="blur2"/>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <style>
+      @keyframes spinAccretion {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      @keyframes pulseErgosphere {
+        0%, 100% { transform: scale(1.0); opacity: 0.75; }
+        50% { transform: scale(1.04); opacity: 1.0; }
+      }
+      @keyframes photonRingFlicker {
+        0%, 100% { opacity: 0.85; stroke-width: 1.5; }
+        50% { opacity: 1.0; stroke-width: 2.2; }
+      }
+      @keyframes starTwinkle {
+        0%, 100% { opacity: 0.3; }
+        50% { opacity: 0.9; }
+      }
+      @keyframes dopplerSurge {
+        0%, 100% { transform: translateX(0px) scale(1.0); }
+        50% { transform: translateX(-4px) scale(1.02); }
+      }
+      .anim-spin {
+        transform-origin: 600px 220px;
+        animation: spinAccretion 24s linear infinite;
+      }
+      .anim-ergo {
+        transform-origin: 600px 220px;
+        animation: pulseErgosphere 4s ease-in-out infinite;
+      }
+      .anim-photon {
+        animation: photonRingFlicker 3s ease-in-out infinite;
+      }
+      .anim-star-1 { animation: starTwinkle 3s ease-in-out infinite; }
+      .anim-star-2 { animation: starTwinkle 4.5s ease-in-out infinite 1.2s; }
+      .anim-doppler {
+        transform-origin: 600px 220px;
+        animation: dopplerSurge 5s ease-in-out infinite;
+      }
+    </style>
+  </defs>
+
+  <!-- Deep Cosmos Background -->
+  <rect width="1200" height="500" fill="url(#deepSpace)"/>
+
+  <!-- Distant Background Stars -->
+  <g fill="#ffffff">
+    <circle cx="85" cy="65" r="1.2" class="anim-star-1" opacity="0.6"/>
+    <circle cx="140" cy="190" r="0.9" class="anim-star-2" opacity="0.5"/>
+    <circle cx="230" cy="80" r="1.5" class="anim-star-1" opacity="0.8"/>
+    <circle cx="310" cy="390" r="1.1" class="anim-star-2" opacity="0.4"/>
+    <circle cx="420" cy="70" r="0.8" class="anim-star-1" opacity="0.5"/>
+    <circle cx="950" cy="110" r="1.4" class="anim-star-1" opacity="0.7"/>
+    <circle cx="1060" cy="75" r="1.0" class="anim-star-2" opacity="0.6"/>
+    <circle cx="1120" cy="220" r="1.3" class="anim-star-1" opacity="0.8"/>
+    <circle cx="1010" cy="380" r="0.9" class="anim-star-2" opacity="0.4"/>
+    <circle cx="880" cy="420" r="1.2" class="anim-star-1" opacity="0.7"/>
+    <circle cx="180" cy="440" r="1.0" class="anim-star-2" opacity="0.5"/>
+    <circle cx="750" cy="50" r="1.1" class="anim-star-1" opacity="0.6"/>
+  </g>
+
+  <!-- Lensed Background Accretion Arc (Secondary Image curving over top) -->
+  <g class="anim-doppler" filter="url(#bloom)">
+    <path d="M 370 215 C 370 95, 830 95, 830 215" fill="none" stroke="url(#einsteinRing)" stroke-width="14" stroke-linecap="round" opacity="0.75"/>
+    <path d="M 410 218 C 410 120, 790 120, 790 218" fill="none" stroke="#fff7d9" stroke-width="3" stroke-linecap="round" opacity="0.85"/>
+  </g>
+
+  <!-- Primary Accretion Disk (Rotated Ellipse with Doppler Asymmetry) -->
+  <g filter="url(#strongBloom)">
+    <!-- Doppler blueshifted approaching side (left side radiant flare) -->
+    <ellipse cx="600" cy="222" rx="360" ry="62" fill="none" stroke="url(#diskBeaming)" stroke-width="26" opacity="0.95"/>
+    <ellipse cx="600" cy="222" rx="340" ry="56" fill="none" stroke="#00e5ff" stroke-width="4" opacity="0.85"/>
+    <ellipse cx="600" cy="222" rx="310" ry="48" fill="none" stroke="#ffe399" stroke-width="3" opacity="0.9"/>
+  </g>
+
+  <!-- Rotating Keplerian Swirl Streams -->
+  <g class="anim-spin" filter="url(#bloom)" opacity="0.65">
+    <ellipse cx="600" cy="220" rx="280" ry="42" fill="none" stroke="#00e5ff" stroke-width="1.8" stroke-dasharray="40 80 120 60"/>
+    <ellipse cx="600" cy="220" rx="330" ry="52" fill="none" stroke="#ff8c00" stroke-width="1.5" stroke-dasharray="70 50 140 80"/>
+    <ellipse cx="600" cy="220" rx="370" ry="60" fill="none" stroke="#00ffff" stroke-width="1.2" stroke-dasharray="100 120 40 90"/>
+  </g>
+
+  <!-- Pulsing Oblique Ergosphere Boundary (Oblate Spheroid r_E(theta)) -->
+  <g class="anim-ergo" filter="url(#strongBloom)">
+    <ellipse cx="600" cy="220" rx="148" ry="128" fill="url(#ergoGlow)"/>
+    <ellipse cx="600" cy="220" rx="146" ry="126" fill="none" stroke="#00e5ff" stroke-width="1.8" stroke-dasharray="6 4" opacity="0.85"/>
+  </g>
+
+  <!-- Relativistic Photon Orbit Ring (Light Trapping Sphere) -->
+  <ellipse cx="600" cy="220" rx="108" ry="102" fill="none" stroke="#ffea75" class="anim-photon" filter="url(#bloom)" opacity="0.95"/>
+
+  <!-- Kerr Black Hole Shadow (Event Horizon r_+ Core) -->
+  <ellipse cx="600" cy="220" rx="98" ry="94" fill="url(#shadowCore)"/>
+  <ellipse cx="600" cy="220" rx="95" ry="92" fill="#000000"/>
+
+  <!-- Foreground Accretion Disk Crossing Front (Cuts in front of horizon) -->
+  <g filter="url(#bloom)">
+    <path d="M 240 224 C 280 252, 920 252, 960 224" fill="none" stroke="url(#diskBeaming)" stroke-width="20" stroke-linecap="round" opacity="0.92"/>
+    <path d="M 280 224 C 320 248, 880 248, 920 224" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" opacity="0.8"/>
+  </g>
+
+  <!-- Foreground Frame Header & HUD Telemetry -->
+  <g fill="#00e5ff" font-family="'Consolas', 'Courier New', monospace" font-size="11" letter-spacing="2" opacity="0.85">
+    <text x="50" y="42">SPACETIME METRIC: KERR OBLATE (a = 0.950 M)</text>
+    <text x="50" y="60">PIPELINE: GLSL 4.60 COMPUTE RAYMARCHING</text>
+    <text x="1150" y="42" text-anchor="end">FRAME DRAGGING: ACTIVE (OMEGA_LENSE)</text>
+    <text x="1150" y="60" text-anchor="end">VELOCITY: 60-400+ FPS NATIVE</text>
+  </g>
+
+  <!-- Bottom Title Deck & Typography -->
+  <g text-anchor="middle">
+    <text x="600" y="415" fill="#ffffff" font-size="28" font-weight="800" letter-spacing="4" filter="url(#bloom)">
+      KERR BLACK HOLE INTERIOR NAVIGATOR
+    </text>
+    <text x="600" y="445" fill="#a0aec0" font-size="14" font-weight="500" letter-spacing="2">
+      Real-Time Relativistic Geodesic Raymarching · C++20 &amp; OpenGL 4.6
+    </text>
+
+    <!-- Specs Badges Grid -->
+    <g font-family="'Consolas', 'Courier New', monospace" font-size="11" font-weight="600">
+      <!-- Badge 1 -->
+      <rect x="220" y="462" width="160" height="24" rx="4" fill="#0f172a" stroke="#00e5ff" stroke-width="1" stroke-opacity="0.4"/>
+      <text x="300" y="478" fill="#00e5ff">⚡ 60-400+ FPS GPU</text>
+
+      <!-- Badge 2 -->
+      <rect x="395" y="462" width="180" height="24" rx="4" fill="#0f172a" stroke="#ff9900" stroke-width="1" stroke-opacity="0.4"/>
+      <text x="485" y="478" fill="#ffb347">🌌 DUAL EINSTEIN RINGS</text>
+
+      <!-- Badge 3 -->
+      <rect x="590" y="462" width="190" height="24" rx="4" fill="#0f172a" stroke="#00e5ff" stroke-width="1" stroke-opacity="0.4"/>
+      <text x="685" y="478" fill="#38bdf8">🌀 NEGATIVE UNIVERSE (r &lt; 0)</text>
+
+      <!-- Badge 4 -->
+      <rect x="795" y="462" width="185" height="24" rx="4" fill="#0f172a" stroke="#10b981" stroke-width="1" stroke-opacity="0.4"/>
+      <text x="887" y="478" fill="#34d399">📦 STANDALONE EXE (3.1 MB)</text>
+    </g>
+  </g>
+</svg>

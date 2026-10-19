@@ -1,4 +1,4 @@
-#version 460 core
+#version 430 core
 // ============================================================================
 // Tone-map + High-Performance Bloom + Cauchy-Horizon Whiteout
 // Optimized with constant Gaussian spatial weights (zero runtime exp calls)

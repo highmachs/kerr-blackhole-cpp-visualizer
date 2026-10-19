@@ -1,4 +1,4 @@
-#version 460 core
+#version 430 core
 // Geodesic trail (spec §10): color-graded line strip from oldest to newest.
 layout(location = 0) in vec3 in_pos;
 

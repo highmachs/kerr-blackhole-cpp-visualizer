@@ -22,6 +22,10 @@
 
 // Windows high-performance GPU exports (forces RTX 4060 on dual-GPU laptops)
 #if defined(_WIN32)
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
 extern "C" {
     __declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
     __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
@@ -893,8 +897,6 @@ int main(int argc, char **argv)
         }
     }
 
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
 #ifndef NDEBUG
@@ -910,12 +912,27 @@ int main(int argc, char **argv)
     glfwWindowHint(GLFW_SAMPLES, 0);
     glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
 
-    GLFWwindow *win = glfwCreateWindow(winW, winH,
-                                       "Kerr Black Hole Interior Navigator", nullptr, nullptr);
+    GLFWwindow *win = nullptr;
+    const int glVersions[][2] = {{4, 6}, {4, 5}, {4, 3}};
+    for (const auto &ver : glVersions)
+    {
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, ver[0]);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, ver[1]);
+        win = glfwCreateWindow(winW, winH,
+                               "Kerr Black Hole Interior Navigator", nullptr, nullptr);
+        if (win) break;
+    }
+
     if (!win)
     {
+#ifdef _WIN32
+        MessageBoxA(NULL,
+                    "Failed to create OpenGL 4.3+ hardware context.\n\nPlease ensure your GPU graphics drivers are up to date.",
+                    "Kerr Navigator — Hardware Acceleration Error",
+                    MB_OK | MB_ICONERROR);
+#endif
         std::fprintf(stderr,
-                     "glfwCreateWindow failed (need GL 4.6; macOS caps at 4.1)\n");
+                     "glfwCreateWindow failed (requires OpenGL 4.3+)\n");
         glfwTerminate();
         return 1;
     }
@@ -1019,7 +1036,7 @@ int main(int argc, char **argv)
     ImGui::GetStyle().ScaleAllSizes(autoScale);
 
     ImGui_ImplGlfw_InitForOpenGL(win, true);
-    ImGui_ImplOpenGL3_Init("#version 460 core");
+    ImGui_ImplOpenGL3_Init("#version 430 core");
 
     using clock = std::chrono::high_resolution_clock;
     auto last = clock::now();

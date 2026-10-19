@@ -1,4 +1,4 @@
-#version 460 core
+#version 430 core
 // Warm Ash (older) -> Lava Core (newest), per spec §10.
 in  float v_t;
 out vec4 fragColor;

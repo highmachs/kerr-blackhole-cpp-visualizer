@@ -1,4 +1,4 @@
-#version 460 core
+#version 430 core
 // ============================================================================
 // Kerr Black Hole Interior Navigator — Compute Shader (GLSL 4.60)
 // High-Performance Runge-Kutta / Verlet Null Geodesic Raytracing Pipeline

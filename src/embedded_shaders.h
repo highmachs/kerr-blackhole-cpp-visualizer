@@ -4,7 +4,7 @@ namespace kerr {
 namespace embedded {
 
 inline constexpr const char compute_glsl[] = R"SHADER_SRC(
-#version 460 core
+#version 430 core
 // ============================================================================
 // Kerr Black Hole Interior Navigator — Compute Shader (GLSL 4.60)
 // High-Performance Runge-Kutta / Verlet Null Geodesic Raytracing Pipeline
@@ -465,7 +465,7 @@ R"SHADER_SRC(
 )SHADER_SRC";
 
 inline constexpr const char fullscreen_vert[] = R"SHADER_SRC(
-#version 460 core
+#version 430 core
 // Fullscreen triangle without a VBO: uses gl_VertexID to emit 3 vertices
 // covering the whole framebuffer.
 out vec2 v_uv;
@@ -480,7 +480,7 @@ void main() {
 )SHADER_SRC";
 
 inline constexpr const char display_frag[] = R"SHADER_SRC(
-#version 460 core
+#version 430 core
 // ============================================================================
 // Tone-map + High-Performance Bloom + Cauchy-Horizon Whiteout
 // Optimized with constant Gaussian spatial weights (zero runtime exp calls)
@@ -547,7 +547,7 @@ void main() {
 )SHADER_SRC";
 
 inline constexpr const char trail_vert[] = R"SHADER_SRC(
-#version 460 core
+#version 430 core
 // Geodesic trail (spec §10): color-graded line strip from oldest to newest.
 layout(location = 0) in vec3 in_pos;
 
@@ -564,7 +564,7 @@ void main() {
 )SHADER_SRC";
 
 inline constexpr const char trail_frag[] = R"SHADER_SRC(
-#version 460 core
+#version 430 core
 // Warm Ash (older) -> Lava Core (newest), per spec §10.
 in  float v_t;
 out vec4 fragColor;

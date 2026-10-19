@@ -1,4 +1,4 @@
-#version 460 core
+#version 430 core
 // Fullscreen triangle without a VBO: uses gl_VertexID to emit 3 vertices
 // covering the whole framebuffer.
 out vec2 v_uv;

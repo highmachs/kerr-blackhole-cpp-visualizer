@@ -116,6 +116,7 @@ endif()
 target_compile_definitions(kerr_bh PRIVATE GLFW_INCLUDE_NONE)
 
 if(MSVC)
+	set_property(TARGET kerr_bh PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 	target_compile_options(kerr_bh PRIVATE /W3 /permissive- /Zc:__cplusplus)
 	target_compile_options(kerr_bh PRIVATE $<$<CONFIG:Release>:/O2 /Oi /Ot /GL /arch:AVX2 /fp:fast /DNDEBUG>)
 	target_link_options(kerr_bh PRIVATE $<$<CONFIG:Release>:/LTCG /OPT:REF /OPT:ICF>)

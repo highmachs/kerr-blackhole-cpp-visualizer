@@ -105,8 +105,13 @@ target_link_libraries(kerr_bh PRIVATE
 	glfw
 	glm::glm
 	${IMGUI_TARGET}
-	"${CMAKE_CURRENT_SOURCE_DIR}/src/version.res"
 )
+
+if(MSVC)
+	target_sources(kerr_bh PRIVATE src/version.rc)
+elseif(WIN32)
+	target_link_libraries(kerr_bh PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/version.res")
+endif()
 
 target_compile_definitions(kerr_bh PRIVATE GLFW_INCLUDE_NONE)
 

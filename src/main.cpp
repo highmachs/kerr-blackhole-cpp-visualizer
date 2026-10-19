@@ -1006,6 +1006,7 @@ int main(int argc, char **argv)
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
     (void)io;
+    io.IniFilename = nullptr; // Disable imgui.ini disk creation completely
     ImGui::StyleColorsDark();
 
     // Auto 4K DPI Scaling:

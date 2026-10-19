@@ -7,12 +7,14 @@ out/
 *.pdb
 *.ilk
 *.obj
+*.res
 *.ipch
 *.log
 *.tmp
 imgui.ini
 dist/
 *.zip
+*.mp4
 
 # Test artifacts
 *.png

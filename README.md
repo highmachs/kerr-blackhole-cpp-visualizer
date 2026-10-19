@@ -39,6 +39,21 @@ No compiler, Visual Studio, or dependencies required. Everything is pre-built an
 3. No extraction, no installers, no external folders needed! All shaders and assets are embedded.
 4. Enjoy smooth 60–400+ FPS raymarching!
 
+> [!NOTE]
+> ### 🛡️ Windows SmartScreen Note (100% Safe & Clean)
+> When you first launch `kerrblackhole.exe`, Windows Defender SmartScreen may display:
+> *"Windows protected your PC — Microsoft Defender SmartScreen prevented an unrecognized app from starting."*
+>
+> **How to run**: Simply click **"More info"** and then **"Run anyway"**.
+>
+> **Why does this appear?**
+> Windows SmartScreen automatically flags all newly released, independent open-source executables downloaded from the web until they accumulate automated global download reputation in Microsoft's database. Commercial digital certificates cost $300–$500/year, which most open-source projects forgo.
+>
+> **Why is this app 100% safe?**
+> - **Public Open-Source Code**: Every single line of C++20 and GLSL compute shader code is transparently hosted in this repository under the [MIT License](LICENSE) for anyone to inspect and audit.
+> - **Zero Network Activity**: The simulator contains zero network code, makes no internet connections, collects zero telemetry, and installs no background services.
+> - **100% Local GPU Execution**: Runs completely self-contained in memory directly on your graphics card.
+
 ---
 
 ## 🖥️ Dynamic In-App Resolution Switching & GPU Protection

@@ -374,17 +374,19 @@ namespace kerr
         glDisable(GL_BLEND);
     }
 
-    bool Renderer::screenshot(const std::string &path) const
+    bool Renderer::screenshot(const std::string &path, int captureW, int captureH) const
     {
-        std::vector<unsigned char> pix(W_ * H_ * 3);
+        int w = (captureW > 0) ? captureW : W_;
+        int h = (captureH > 0) ? captureH : H_;
+        std::vector<unsigned char> pix(w * h * 3);
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
-        glReadPixels(0, 0, W_, H_, GL_RGB, GL_UNSIGNED_BYTE, pix.data());
-        std::vector<unsigned char> flip(W_ * H_ * 3);
-        for (int y = 0; y < H_; ++y)
+        glReadPixels(0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, pix.data());
+        std::vector<unsigned char> flip(w * h * 3);
+        for (int y = 0; y < h; ++y)
         {
-            std::memcpy(&flip[(H_ - 1 - y) * W_ * 3], &pix[y * W_ * 3], W_ * 3);
+            std::memcpy(&flip[(h - 1 - y) * w * 3], &pix[y * w * 3], w * 3);
         }
-        return stbi_write_png(path.c_str(), W_, H_, 3, flip.data(), W_ * 3) != 0;
+        return stbi_write_png(path.c_str(), w, h, 3, flip.data(), w * 3) != 0;
     }
 
 } // namespace kerr

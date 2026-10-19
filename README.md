@@ -20,11 +20,12 @@ Runs **100% natively on your GPU** with multi-threaded performance, zero browser
 
 ---
 
-## 🎥 Real-Time Raymarching Simulation Demo
+## 🎥 Real-Time Flight Through a Kerr Black Hole
+*(This is how traveling to a black hole looks like if you're immortal)*
 
 <div align="center">
-  <img src="assets/kerr_demo.webp" alt="Real-Time Kerr Black Hole Geodesic Raymarching Demo" width="100%" style="border-radius: 8px;">
-  <p><em>Real-time GPU raymarching: orbital sweep, relativistic Doppler beaming, and dual Einstein gravitational lensing rings.</em></p>
+  <img src="assets/kerr_tour.webp" alt="Real-Time Kerr Black Hole Geodesic Raymarching Flight Tour" width="100%" style="border-radius: 8px;">
+  <p><em>Complete 32-second continuous flight: Approaching from safe orbit, crossing the outer event horizon, passing the Cauchy horizon optical flash, slipping through the ring singularity throat, and entering the repulsive Negative Universe ($r < 0$).</em></p>
 </div>
 
 ---
@@ -146,6 +147,41 @@ Measured on **NVIDIA GeForce RTX 4060 Laptop GPU** (8GB VRAM, 140W TGP, Windows 
 | **4K UHD** (`3840x2160`) Cinematic | 320 | $240 \times 135$ | 10.8 ms | 0.6 ms | **11.4 ms** | **87 FPS** |
 
 *All presets maintain fluid 60+ to 140+ FPS performance even under extreme 4K resolution loads.*
+
+---
+
+## 🌌 In Simple Terms: How Does a Spinning Black Hole Work?
+
+If you are not an astrophysicist, here is what is physically happening as you pilot your spacecraft into the black hole:
+
+### 1. It’s Not Just a Vacuum Cleaner — It’s a Cosmic Whirlpool
+Most people picture a black hole as a dark, static ball in space. But nearly all real black holes in the universe **spin rapidly** (often thousands of times every second). 
+Because space and time are flexible (as Einstein discovered), a spinning black hole drags space around itself like thick honey being stirred with a spoon. This swirling region outside the black hole is called the **Ergosphere**. Inside it, you cannot stand still even if your engines fire at maximum thrust — space itself is moving faster than light.
+
+### 2. The Blinding Glowing Donut (Accretion Disk)
+The glowing halo around the black hole isn't solid — it is gas, dust, and plasma swirling inward at near light-speed. 
+- Friction heats this gas to millions of degrees, causing it to glow brilliantly with X-rays and visible light.
+- **Why is one side brighter?** The side rotating toward your cockpit appears blindingly bright and blue-tinted because light waves are compressed by your forward speed (**Doppler beaming**). The side moving away appears dimmer and deeper red.
+- **Why do you see a double ring over the top?** The intense gravity acts like a giant lens (**Einstein rings**), bending light rays from *behind* the black hole and curving them over and under the shadow straight into your eyes!
+
+### 3. The Two Horizons: Outer and Inner
+A simple black hole only has one horizon. But a spinning Kerr black hole has **two nested horizons**:
+1. **The Outer Event Horizon ($r_+$)**: The traditional "point of no return". Once you cross this invisible boundary, you can never escape back to Earth, even if you travel at the speed of light.
+2. **The Inner Cauchy Horizon ($r_-$)**: Inside the outer horizon, centrifugal force from the spin pushes back against gravity! Right at this boundary, light from the entire history of the outside universe is compressed into an intense, brilliant optical flash (**the Cauchy Whiteout**).
+
+### 4. The Donut Hole Gateway (Ring Singularity & Wormhole)
+In a non-spinning black hole, all matter collapses to a single infinitesimal point that crushes everything to zero volume. 
+However, **rotation stretches this singularity into an open ring — like a cosmic donut hole**!
+- If an astronaut plunges along the equator and aims straight through the center of the ring, they never touch the infinitely dense matter.
+- In Einstein's mathematical equations, passing through the center of this ring acts as an **Einstein-Rosen bridge (a wormhole)**.
+
+### 5. The Negative Universe ($r < 0$) & The White Hole
+Once your spacecraft slips through the throat of the ring singularity, the radial distance coordinate $r$ flips to negative ($r < 0$):
+- In our universe ($r > 0$), mass creates attractive gravity that pulls you inward.
+- In the Negative Universe ($r < 0$), the mathematical sign of gravity reverses — **the black hole now acts as a White Hole with repulsive antigravity**!
+- Instead of pulling you in, it violently repels matter and energy outward, blasting brilliant cyan celestial jets into deep space.
+
+---
 
 ## Regenerate the Starfield
 

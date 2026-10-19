@@ -840,6 +840,11 @@ int main(int argc, char **argv)
     std::string screenshotPath = "";
     int targetFrames = 10;
     bool headless = false;
+    bool startTour = false;
+    bool hideUI = false;
+    std::string recordDir = "";
+    int recordFps = 10;
+    float recordDuration = 32.0f;
     double initialR = 14.0;
     double initialTheta = 1.35; // ~77 deg inclination (Interstellar-style vista)
     double initialPhi = 0.0;
@@ -854,6 +859,11 @@ int main(int argc, char **argv)
         if (arg == "--screenshot" && i + 1 < argc) screenshotPath = argv[++i];
         else if (arg == "--frames" && i + 1 < argc) targetFrames = std::atoi(argv[++i]);
         else if (arg == "--headless") headless = true;
+        else if (arg == "--tour") startTour = true;
+        else if (arg == "--no-ui") hideUI = true;
+        else if (arg == "--record-tour" && i + 1 < argc) recordDir = argv[++i];
+        else if (arg == "--record-fps" && i + 1 < argc) recordFps = std::atoi(argv[++i]);
+        else if (arg == "--record-duration" && i + 1 < argc) recordDuration = (float)std::atof(argv[++i]);
         else if (arg == "--r" && i + 1 < argc) initialR = std::atof(argv[++i]);
         else if (arg == "--theta" && i + 1 < argc) initialTheta = std::atof(argv[++i]);
         else if (arg == "--phi" && i + 1 < argc) initialPhi = std::atof(argv[++i]);
@@ -946,7 +956,11 @@ int main(int argc, char **argv)
     app.fbHeight = fbh;
 
     // Detect startup preset based on initial requested window dimension
-    if (winW <= 720) app.resPreset = 0;       // 360p
+    if (headless || !recordDir.empty())
+    {
+        app.resPreset = 6; // Force match window 1:1 exactly
+    }
+    else if (winW <= 720) app.resPreset = 0;       // 360p
     else if (winW <= 1366) app.resPreset = 1; // 720p
     else if (winW <= 2000) app.resPreset = 2; // 1080p
     else if (winW <= 2800) app.resPreset = 3; // 1440p
@@ -972,6 +986,11 @@ int main(int argc, char **argv)
     app.camera.mode = kerr::classify(app.camera.bh, app.camera.r);
     app.audio.init();
     app.audioPrevMode = app.camera.mode;
+
+    if (startTour || !recordDir.empty())
+    {
+        if (!app.camera.isTouring) app.camera.toggleTour();
+    }
 
     glfwSetFramebufferSizeCallback(win, onFramebufferSize);
     glfwSetKeyCallback(win, onKey);
@@ -1005,6 +1024,7 @@ int main(int argc, char **argv)
     auto last = clock::now();
     auto start = last;
     int frameCount = 0;
+    int recordFrameIdx = 0;
 
     while (!glfwWindowShouldClose(win))
     {
@@ -1014,6 +1034,12 @@ int main(int argc, char **argv)
         double dt = std::chrono::duration<double>(now - last).count();
         double tsec = std::chrono::duration<double>(now - start).count();
         last = now;
+
+        if (!recordDir.empty())
+        {
+            dt = 1.0 / (double)recordFps;
+            tsec = (double)recordFrameIdx * dt;
+        }
 
         // Frame pacing safety clamp (max 50ms per frame to prevent physics hitches)
         dt = std::clamp(dt, 0.0001, 0.05);
@@ -1079,12 +1105,29 @@ int main(int argc, char **argv)
 
         app.renderer.render(app.camera, app.settings, (float)tsec, app.fbWidth, app.fbHeight);
 
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-        drawImGui(dt * 1000.0);
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        if (!recordDir.empty())
+        {
+            char fname[512];
+            std::snprintf(fname, sizeof(fname), "%s/frame_%04d.png", recordDir.c_str(), recordFrameIdx);
+            app.renderer.screenshot(fname, app.fbWidth, app.fbHeight);
+            recordFrameIdx++;
+            int maxFrames = (int)(recordDuration * (float)recordFps);
+            if (recordFrameIdx >= maxFrames)
+            {
+                std::printf("[kerr] finished recording %d tour frames to %s\n", recordFrameIdx, recordDir.c_str());
+                break;
+            }
+        }
+
+        if (!hideUI)
+        {
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui_ImplGlfw_NewFrame();
+            ImGui::NewFrame();
+            drawImGui(dt * 1000.0);
+            ImGui::Render();
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        }
 
         glfwSwapBuffers(win);
 
@@ -1111,7 +1154,7 @@ int main(int argc, char **argv)
 
         if (!screenshotPath.empty() && frameCount >= targetFrames)
         {
-            app.renderer.screenshot(screenshotPath);
+            app.renderer.screenshot(screenshotPath, app.fbWidth, app.fbHeight);
             std::printf("[kerr] benchmark saved %s at r=%.3f, mode=%s\n",
                         screenshotPath.c_str(), app.camera.r, kerr::modeName(app.camera.mode));
             break;

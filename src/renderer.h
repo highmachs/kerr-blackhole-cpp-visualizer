@@ -67,7 +67,7 @@ namespace kerr
         void shutdown();
         bool loadStarfield(const std::string &path);
         void render(const Camera &cam, const RenderSettings &s, float timeSec, int displayWidth = 0, int displayHeight = 0);
-        bool screenshot(const std::string &path) const;
+        bool screenshot(const std::string &path, int captureW = 0, int captureH = 0) const;
 
         int width() const { return W_; }
         int height() const { return H_; }

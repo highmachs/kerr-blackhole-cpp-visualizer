@@ -8,6 +8,7 @@ out/
 *.ilk
 *.obj
 *.res
+!src/version.res
 *.ipch
 *.log
 *.tmp

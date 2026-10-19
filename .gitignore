@@ -40,3 +40,7 @@ Makefile
 *.ntvs*
 *.njsproj
 *.sw?
+
+# AI Agent Local Configuration
+.agent/
+.agents/

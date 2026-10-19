@@ -368,13 +368,14 @@ The compute shader traces null geodesics backwards from the observer camera into
 - **Local Workgroup:** `layout(local_size_x = 16, local_size_y = 16) in;`
 - **Numerical Integration:** Velocity-Verlet / 2nd-order Runge-Kutta predictor-corrector:
 
-  $$
-  p_{n+1} = p_n + v_n h + \frac{1}{2} a(p_n, v_n) h^2
-  $$
+$$
+p_{n+1} = p_n + v_n h + \frac{1}{2} a(p_n, v_n) h^2
+$$
 
-  $$
-  v_{n+1} = \text{normalize}\left(v_n + \frac{1}{2}\left(a(p_n, v_n) + a(p_{n+1}, v_n + a_1 h)\right) h\right)
-  $$
+$$
+v_{n+1} = \text{normalize}\left(v_n + \frac{1}{2}\left(a(p_n, v_n) + a(p_{n+1}, v_n + a_1 h)\right) h\right)
+$$
+
 - **Adaptive Step Sizing:**
 
   - Deep space ($|r| > 18M$): $h = 0.60\,M$
@@ -905,27 +906,29 @@ $$
 
 ### 13.6 White Hole Expulsion Dynamics ($r < 0$)
 
-1. **Polar Expulsion Jets:**
-   Collimated relativistic particle jets emanating from the $r < 0$ throat:
+#### 1. Polar Expulsion Jets
+Collimated relativistic particle jets emanating from the $r < 0$ throat:
 
-   $$
-   I_{\text{jet}}(\rho, z, t) = I_0 \cdot \exp\left(-\frac{14\rho}{a}\right) \cdot \exp(-0.6|z|) \cdot \left[0.85 + 0.15\sin(12|z| - 6t)\right]
-   $$
-2. **Throat Aperture Emission:**
-   Radiant celestial white-to-cyan gradient at the boundary:
+$$
+I_{\text{jet}}(\rho, z, t) = I_0 \cdot \exp\left(-\frac{14\rho}{a}\right) \cdot \exp(-0.6|z|) \cdot \left[0.85 + 0.15\sin(12|z| - 6t)\right]
+$$
 
-   $$
-   u_{\text{throat}} = \text{clamp}\left(\frac{\rho}{a}, 0.0, 1.30\right)
-   $$
+#### 2. Throat Aperture Emission
+Radiant celestial white-to-cyan gradient at the boundary:
 
-   $$
-   I_{\text{throat}}(\rho, z, t) = I_{\text{core}} \cdot \exp(-8|z|) \cdot \left[0.82 + 0.18\sin(18\rho - 4.5t)\right]
-   $$
-3. **Repulsive Expulsion Photon Ring ($\rho \in [0.7a, 4.5a]$):**
+$$
+u_{\text{throat}} = \text{clamp}\left(\frac{\rho}{a}, 0.0, 1.30\right)
+$$
 
-   $$
-   I_{\text{exp}}(\rho, z, t) = I_1 \cdot \exp(-8|z|) \cdot \exp\left(-1.5\frac{\rho - a}{3.5a}\right) \cdot \left[0.82 + 0.18\sin(14\rho - 3\phi + 3.5t)\right]
-   $$
+$$
+I_{\text{throat}}(\rho, z, t) = I_{\text{core}} \cdot \exp(-8|z|) \cdot \left[0.82 + 0.18\sin(18\rho - 4.5t)\right]
+$$
+
+#### 3. Repulsive Expulsion Photon Ring ($\rho \in [0.7a, 4.5a]$)
+
+$$
+I_{\text{exp}}(\rho, z, t) = I_1 \cdot \exp(-8|z|) \cdot \exp\left(-1.5\frac{\rho - a}{3.5a}\right) \cdot \left[0.82 + 0.18\sin(14\rho - 3\phi + 3.5t)\right]
+$$
 
 ---
 
@@ -933,19 +936,24 @@ $$
 
 The software synthesizer runs entirely in C++ without audio samples, using direct sample generation:
 
-1. **Ergosphere Frame-Dragging Drone:**
-   $$
-   s_{\text{drone}}(t) = 0.35\sin(2\pi \cdot 48\,t) + 0.15\sin(2\pi \cdot 96\,t) \cdot \left(1.0 + 0.8\,v_{\text{drag}}\right)
-   $$
-2. **Horizon Whiteout Chirp:**
-   $$
-   f_{\text{chirp}}(t) = f_{\text{start}} \cdot \exp\left(k_{\text{chirp}} \cdot t\right), \quad s_{\text{chirp}}(t) = \sin\left(\int_0^t 2\pi f_{\text{chirp}}(\tau)\,d\tau\right) \cdot \exp(-4t)
-   $$
-3. **Negative Universe Ambience:**
-   Dissonant golden-ratio harmonic chords:
-   $$
-   s_{\text{neg}}(t) = 0.20\sin(2\pi \cdot 55\,t) + 0.15\sin(2\pi \cdot 55\sqrt{2}\,t) + 0.10\sin(2\pi \cdot 55 e\,t)
-   $$
+#### 1. Ergosphere Frame-Dragging Drone
+
+$$
+s_{\text{drone}}(t) = 0.35\sin(2\pi \cdot 48\,t) + 0.15\sin(2\pi \cdot 96\,t) \cdot \left(1.0 + 0.8\,v_{\text{drag}}\right)
+$$
+
+#### 2. Horizon Whiteout Chirp
+
+$$
+f_{\text{chirp}}(t) = f_{\text{start}} \cdot \exp\left(k_{\text{chirp}} \cdot t\right), \quad s_{\text{chirp}}(t) = \sin\left(\int_0^t 2\pi f_{\text{chirp}}(\tau)\,d\tau\right) \cdot \exp(-4t)
+$$
+
+#### 3. Negative Universe Ambience
+Dissonant golden-ratio harmonic chords:
+
+$$
+s_{\text{neg}}(t) = 0.20\sin(2\pi \cdot 55\,t) + 0.15\sin(2\pi \cdot 55\sqrt{2}\,t) + 0.10\sin(2\pi \cdot 55 e\,t)
+$$
 
 ---
 

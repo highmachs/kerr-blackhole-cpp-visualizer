@@ -17,6 +17,7 @@ dist/
 # Test artifacts
 *.png
 !assets/starfield.png
+!assets/preview.png
 
 # CMake / generated files
 CMakeFiles/

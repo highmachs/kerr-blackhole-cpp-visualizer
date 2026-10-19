@@ -113,7 +113,7 @@ elseif(WIN32)
 	target_link_libraries(kerr_bh PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/version.res")
 endif()
 
-target_compile_definitions(kerr_bh PRIVATE GLFW_INCLUDE_NONE)
+target_compile_definitions(kerr_bh PRIVATE GLFW_INCLUDE_NONE NOMINMAX)
 
 if(MSVC)
 	set_property(TARGET kerr_bh PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")

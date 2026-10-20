@@ -7,6 +7,10 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+if(MSVC)
+	set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Release)
 endif()
@@ -29,6 +33,7 @@ if(NOT TARGET glfw)
 	set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 	set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 	set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
+	set(USE_MSVC_RUNTIME_LIBRARY_DLL OFF CACHE BOOL "" FORCE)
 	FetchContent_Declare(
 		glfw
 		GIT_REPOSITORY https://github.com/glfw/glfw.git
@@ -113,10 +118,16 @@ elseif(WIN32)
 	target_link_libraries(kerr_bh PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/version.res")
 endif()
 
-target_compile_definitions(kerr_bh PRIVATE GLFW_INCLUDE_NONE NOMINMAX)
+target_compile_definitions(kerr_bh PRIVATE GLFW_INCLUDE_NONE NOMINMAX _CRT_SECURE_NO_WARNINGS)
 
 if(MSVC)
 	set_property(TARGET kerr_bh PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+	if(TARGET glfw)
+		set_property(TARGET glfw PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+	endif()
+	if(TARGET imgui)
+		set_property(TARGET imgui PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+	endif()
 	target_compile_options(kerr_bh PRIVATE /W3 /permissive- /Zc:__cplusplus)
 	target_compile_options(kerr_bh PRIVATE $<$<CONFIG:Release>:/O2 /Oi /Ot /GL /arch:AVX2 /fp:fast /DNDEBUG>)
 	target_link_options(kerr_bh PRIVATE $<$<CONFIG:Release>:/LTCG /OPT:REF /OPT:ICF>)

@@ -9,10 +9,12 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#if defined(_WIN32)
-#  define APIENTRY __stdcall
-#else
-#  define APIENTRY
+#ifndef APIENTRY
+#  if defined(_WIN32)
+#    define APIENTRY __stdcall
+#  else
+#    define APIENTRY
+#  endif
 #endif
 
 // ----- Base GL types ---------------------------------------------------------

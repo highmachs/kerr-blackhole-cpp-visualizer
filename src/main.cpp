@@ -1,6 +1,21 @@
 // Kerr Black Hole Interior Navigator — application entry point.
 // Spec sections 1, 5, 7, 13 of kerrblackhole.md.
 
+// Windows high-performance GPU exports (forces RTX 4060 on dual-GPU laptops)
+#if defined(_WIN32)
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+extern "C" {
+    __declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
+    __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+}
+#endif
+
 #include "glad/glad.h"
 #include <GLFW/glfw3.h>
 
@@ -19,21 +34,6 @@
 #include <chrono>
 #include <string>
 #include <thread>
-
-// Windows high-performance GPU exports (forces RTX 4060 on dual-GPU laptops)
-#if defined(_WIN32)
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
-extern "C" {
-    __declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
-    __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
-}
-#endif
 
 namespace
 {
